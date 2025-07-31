@@ -14,9 +14,19 @@ db = firestore.client()
 st.set_page_config(page_title="Diagnóstico UniDigiHub", layout="centered")
 st.image("logo_unidigihub.png", width=200)
 
-# --- Inicializar variable de control ---
+# --- Inicializar variables de control ---
 if "seccion_actual" not in st.session_state:
     st.session_state.seccion_actual = 1
+
+# Variables para controlar envío de cada sección
+for i in range(1, 5):
+    key = f"seccion_{i}_enviado"
+    if key not in st.session_state:
+        st.session_state[key] = False
+
+# Función para forzar recarga limpia sin usar st.experimental_rerun (evita errores)
+def recargar_app():
+    st.session_state["recarga"] = not st.session_state.get("recarga", False)
 
 # --- Sección 1 ---
 def mostrar_seccion_1():
@@ -78,11 +88,12 @@ def mostrar_seccion_1():
             "acceso_tecnologia": acceso_tecnologia,
             "timestamp": firestore.SERVER_TIMESTAMP
         }
-
         db.collection("diagnostico_seccion1").add(doc)
 
         st.success("✅ ¡Gracias! Sección 1 enviada correctamente.")
+        st.session_state.seccion_1_enviado = True
         st.session_state.seccion_actual = 2
+        recargar_app()
 
 # --- Sección 2 ---
 def mostrar_seccion_2():
@@ -147,7 +158,9 @@ def mostrar_seccion_2():
         }
         db.collection("diagnostico_seccion2").add(doc)
         st.success("✅ ¡Gracias! Sección 2 enviada correctamente.")
+        st.session_state.seccion_2_enviado = True
         st.session_state.seccion_actual = 3
+        recargar_app()
 
 # --- Sección 3 ---
 def mostrar_seccion_3():
@@ -218,7 +231,9 @@ def mostrar_seccion_3():
         }
         db.collection("diagnostico_seccion3").add(doc)
         st.success("✅ ¡Gracias! Has completado la Sección 3.")
+        st.session_state.seccion_3_enviado = True
         st.session_state.seccion_actual = 4
+        recargar_app()
 
 # --- Sección 4 placeholder ---
 def mostrar_seccion_4():
@@ -249,12 +264,16 @@ with col1:
     if st.session_state.seccion_actual > 1:
         if st.button("⬅️ Sección anterior"):
             st.session_state.seccion_actual -= 1
-            st.experimental_rerun()
+            recargar_app()
 
 with col3:
-    # Solo permitir avanzar si la sección actual se ha enviado
-    # Para simplificar, permitimos avanzar sin validación
-    if st.session_state.seccion_actual < 5:
-        if st.button("Siguiente ➡️"):
-            st.session_state.seccion_actual += 1
-            st.experimental_rerun()
+    # Validar que la sección actual ya fue enviada para permitir avanzar
+    actual = st.session_state.seccion_actual
+    enviado_key = f"seccion_{actual}_enviado"
+    if st.session_state.get(enviado_key, False):
+        if actual < 5:
+            if st.button("Siguiente ➡️"):
+                st.session_state.seccion_actual += 1
+                recargar_app()
+    else:
+        st.button("Siguiente ➡️ (Completa la sección)", disabled=True)
