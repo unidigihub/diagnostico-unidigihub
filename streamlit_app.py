@@ -105,12 +105,14 @@ if enviado:
         st.info("📲 Se te priorizará para contenidos vía WhatsApp.")
 
     db.collection("diagnostico_seccion1").add(doc)
-    st.success("✅ ¡Gracias! Sección 1 enviada correctamente.")
 
-    # --- Función plantilla para Sección 2 ---
+        st.success("✅ ¡Gracias! Sección 1 enviada correctamente.")
+        # Cambiar a la siguiente sección
+        st.session_state.seccion_actual = 2
+
+# Función para mostrar Sección 2
 def mostrar_seccion_2():
     st.title("Sección 2: Problemáticas locales")
-
     st.write("Por favor, responde estas preguntas sobre los desafíos que enfrenta tu comunidad.")
 
     with st.form("form_seccion2"):
