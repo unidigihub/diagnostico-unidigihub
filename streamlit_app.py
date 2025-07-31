@@ -19,7 +19,6 @@ st.image("logo_unidigihub.png", width=200)
 # --- Título y bienvenida ---
 st.title("Sección 1: Datos demográficos")
 
-st.markdown("""
 ### 👋 ¡Bienvenida y bienvenido al Diagnóstico UniDigiHub!
 
 Este autodiagnóstico tiene como propósito conocerte mejor para ayudarte a identificar tu punto de partida en el mundo digital. A través de 7 secciones breves, exploraremos tus intereses, habilidades y contexto local para recomendarte una ruta de aprendizaje personalizada dentro de UniDigiHub.
