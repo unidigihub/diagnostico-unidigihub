@@ -81,4 +81,4 @@ def mostrar_seccion_1():
 
         db.collection("diagnostico_seccion1").add(doc)
 
-        st.success("✅ ¡Gracias! Sección 1 enviad
+        st.success("✅ ¡Gracias! Sección 1 enviada
