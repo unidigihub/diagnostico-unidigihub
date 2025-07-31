@@ -151,10 +151,8 @@ def mostrar_seccion_2():
 import streamlit as st
 from firebase_admin import firestore
 
-# Inicialización de la variable de sesión
-if "seccion_actual" not in st.session_state:
-    st.session_state.seccion_actual = 3
-
+# Cambiar a la siguiente sección
+        st.session_state.seccion_actual = 3
 # ----------------------------
 # SECCIÓN 3: Intereses profesionales
 # ----------------------------
@@ -226,13 +224,14 @@ def mostrar_seccion_3():
         }
         db.collection("diagnostico_seccion3").add(doc)
         st.success("✅ ¡Gracias! Has completado la Sección 3.")
+       # Cambiar a la siguiente sección
         st.session_state.seccion_actual = 4
-
 # ----------------------------
 # --- SECCIÓN 4: HABILIDADES TÉCNICAS ---
 # ----------------------------
-
-st.header("4. Habilidades técnicas")
+# Función para mostrar Sección 4
+def mostrar_seccion_4():
+    st.title("4. Habilidades técnicas")
 
 # 1. Autoevaluación general
 st.subheader("1. ¿Qué tanto manejas herramientas tecnológicas en tu sector de interés?")
