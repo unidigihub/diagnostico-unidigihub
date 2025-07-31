@@ -34,7 +34,7 @@ def mostrar_seccion_1():
         pais = st.selectbox("1. ¿En qué país resides?", paises)
         departamento = st.text_input("2. Departamento o Estado donde vives")
         comunidad = st.text_input("3. Municipio o comunidad")
-        edad = st.slider("4. ¿Cuál es tu edad?", min_value=15, max_value=90, step=1)
+        edad = st.slider("4. ¿Cuál es tu edad?", min_value=25, max_value=90, step=1)
         genero = st.selectbox(
             "5. ¿Con qué género te identificas?",
             ["Femenino", "Masculino", "No binario", "Prefiero no decir", "Muxe (zapoteco)", "Otro"]
