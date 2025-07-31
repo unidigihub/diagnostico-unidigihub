@@ -15,7 +15,20 @@ db = firestore.client()
 # --- Configuración página ---
 st.set_page_config(page_title="Diagnóstico UniDigiHub – Sección 1", layout="centered")
 st.image("logo_unidigihub.png", width=200)
+
+# --- Título y bienvenida ---
 st.title("Sección 1: Datos demográficos")
+
+st.markdown("""
+### 👋 ¡Bienvenida y bienvenido al Diagnóstico UniDigiHub!
+
+Este autodiagnóstico tiene como propósito conocerte mejor para ayudarte a identificar tu punto de partida en el mundo digital. A través de 7 secciones breves, exploraremos tus intereses, habilidades y contexto local para recomendarte una ruta de aprendizaje personalizada dentro de UniDigiHub.
+
+💡 **Tu participación nos permitirá diseñar experiencias formativas más inclusivas, útiles y adaptadas a tu realidad.**
+
+No se requiere experiencia previa. Solo responde con sinceridad 😊
+""")
+
 
 with st.form("form_datos_demograficos"):
     # País con nombres indígenas
@@ -26,7 +39,7 @@ with st.form("form_datos_demograficos"):
     pais = st.selectbox("1. ¿En qué país resides?", paises)
 
     # Departamento / Estado (placeholder para integración futura con Google Places API)
-    departamento = st.text_input("2. Departamento o estado donde vives (sugerido por ubicación)")
+    departamento = st.text_input("2. Departamento o Estado donde vives")
 
     # Municipio / Comunidad
     comunidad = st.text_input("3. Municipio o comunidad")
