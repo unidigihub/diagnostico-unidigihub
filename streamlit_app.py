@@ -18,37 +18,34 @@ st.image("logo_unidigihub.png", width=200)
 COLOR_AZUL = "#1E90FF"   # Innovación tecnológica
 COLOR_VERDE = "#6DBE45"  # Desarrollo sostenible
 
+# --- Estilos CSS globales para todos los botones ---
+st.markdown(f"""
+<style>
+div.stButton > button {{
+    color: white;
+    height: 50px;
+    width: 140px;
+    border-radius: 12px;
+    border: none;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    background-color: {COLOR_AZUL};
+}}
+div.stButton > button:focus {{
+    outline: none;
+    box-shadow: 0 0 0 3px {COLOR_VERDE};
+}}
+div.stButton > button:hover {{
+    filter: brightness(85%);
+}}
+</style>
+""", unsafe_allow_html=True)
+
 # --- Inicializar control de sección ---
 if "seccion_actual" not in st.session_state:
     st.session_state.seccion_actual = 1
-
-def boton_color(texto, color, key):
-    """
-    Botón grande y colorido con estilo UniDigiHub
-    """
-    with st.form(key):
-        clicked = st.form_submit_button(f'<p style="color:white; font-weight:bold; margin:0;">{texto}</p>',
-                                        use_container_width=True)
-        st.markdown(f"""
-        <style>
-        div.stButton > button {{
-            background-color: {color};
-            color: white;
-            height: 50px;
-            width: 140px;
-            border-radius: 12px;
-            border: none;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }}
-        div.stButton > button:hover {{
-            background-color: #187bcd;  /* color hover para azul */
-        }}
-        </style>
-        """, unsafe_allow_html=True)
-    return clicked
 
 # --- Sección 1 ---
 def mostrar_seccion_1():
@@ -125,6 +122,7 @@ def mostrar_seccion_1():
 
         st.success("✅ ¡Gracias! Sección 1 enviada correctamente.")
         st.session_state.seccion_actual = 2
+        st.experimental_rerun()
 
 # --- Sección 2 ---
 def mostrar_seccion_2():
@@ -190,8 +188,12 @@ def mostrar_seccion_2():
         db.collection("diagnostico_seccion2").add(doc)
         st.success("✅ ¡Gracias! Sección 2 enviada correctamente.")
         st.session_state.seccion_actual = 3
+        st.experimental_rerun()
 
 # --- Mostrar sección según estado ---
+if "seccion_actual" not in st.session_state:
+    st.session_state.seccion_actual = 1
+
 if st.session_state.seccion_actual == 1:
     mostrar_seccion_1()
 elif st.session_state.seccion_actual == 2:
@@ -205,11 +207,12 @@ col1, col2, col3 = st.columns([1,6,1])
 
 with col1:
     if st.session_state.seccion_actual > 1:
-        if boton_color("⬅️ Sección anterior", COLOR_VERDE, "btn_anterior"):
+        if st.button("⬅️ Sección anterior", key="btn_anterior"):
             st.session_state.seccion_actual -= 1
+            st.experimental_rerun()
 
 with col3:
     if st.session_state.seccion_actual < 7:
-        if boton_color("Siguiente ➡️", COLOR_AZUL, "btn_siguiente"):
+        if st.button("Siguiente ➡️", key="btn_siguiente"):
             st.session_state.seccion_actual += 1
-
+            st.experimental_rerun()
