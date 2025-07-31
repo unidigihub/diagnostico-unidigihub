@@ -23,8 +23,8 @@ st.markdown(f"""
 <style>
 div.stButton > button {{
     color: white;
-    height: 50px;
-    width: 140px;
+    height: 500px;
+    width: 500px;
     border-radius: 12px;
     border: none;
     font-size: 18px;
