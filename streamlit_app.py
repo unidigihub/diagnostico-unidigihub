@@ -153,7 +153,7 @@ from firebase_admin import firestore
 
 # Inicialización de la variable de sesión
 if "seccion_actual" not in st.session_state:
-    st.session_state.seccion_actual = 1
+    st.session_state.seccion_actual = 3
 
 # ----------------------------
 # SECCIÓN 3: Intereses profesionales
@@ -229,8 +229,64 @@ def mostrar_seccion_3():
         st.session_state.seccion_actual = 4
 
 # ----------------------------
-# Mostrar la sección actual
+# --- SECCIÓN 4: HABILIDADES TÉCNICAS ---
 # ----------------------------
+
+st.header("4. Habilidades técnicas")
+
+# 1. Autoevaluación general
+st.subheader("1. ¿Qué tanto manejas herramientas tecnológicas en tu sector de interés?")
+tecnologia = st.slider("Califica tu nivel de manejo tecnológico:", 1, 5, 3,
+                       format="%d", help="1 = Nulo, 3 = Intermedio, 5 = Experto")
+emoji_map = {1: "😕", 2: "😐", 3: "🙂", 4: "😀", 5: "😃"}
+st.markdown(f"**Nivel seleccionado:** {tecnologia} {emoji_map[tecnologia]}")
+
+# 2. Herramientas utilizadas (según sector)
+st.subheader("2. ¿Qué herramientas has utilizado?")
+cluster = st.session_state.get("sector_interes", "FinTech")  # Asegúrate de que este valor esté guardado
+
+herramientas_opciones = {
+    "AgriTech": ["🌾 Sensores IoT", "🚁 Drones agrícolas", "🧠 FarmBot"],
+    "FinTech": ["⛓️ Blockchain (Ethereum)", "💳 APIs de pago (Stripe)", "📈 Herramientas de análisis financiero"],
+    "HealthTech": ["🩺 Telemedicina", "⌚ Wearables", "📊 Software de monitoreo de salud"],
+    "Energías Renovables": ["🔋 PVsyst", "⚡ Gestores de red eléctrica", "🧮 Simuladores energéticos"]
+}
+herramientas_seleccionadas = st.multiselect("Selecciona las que has usado:",
+                                             opciones := herramientas_opciones.get(cluster, []))
+
+# 3. Ejercicio práctico adaptativo
+st.subheader("3. Responde una pregunta técnica")
+nivel = st.session_state.get("nivel_experiencia", "UniExplorador")  # Asegúrate de que este valor esté guardado
+
+if nivel == "UniExplorador":
+    pregunta = "¿Qué es un sensor IoT?"
+    opciones = ["Dispositivo que mide variables físicas", "Aplicación para enviar mensajes", "Una red social"]
+    respuesta = st.radio(pregunta, opciones)
+elif nivel == "UniCreador":
+    respuesta = st.text_area("Describa cómo configuraría un sistema de riego con Arduino")
+else:  # UniVisionario
+    respuesta = st.text_area("Proponga un algoritmo para optimizar el consumo energético en una red solar")
+
+# 4. Certificaciones
+st.subheader("4. ¿Tienes certificaciones técnicas?")
+certificaciones = st.selectbox("Selecciona una opción", ["Ninguna", "Cursos en línea", "Certificaciones técnicas"])
+if certificaciones != "Ninguna":
+    certificado_url = st.text_input("Agrega un enlace al certificado (Google Drive, etc.)")
+
+# 5. Proyectos realizados
+st.subheader("5. Cuéntanos sobre algún proyecto técnico que hayas hecho")
+proyecto = st.text_area("Ejemplo: Automatización de riego con sensores y app móvil.")
+
+# Guardar datos de la sección 4 en el estado de sesión
+st.session_state["seccion_4"] = {
+    "nivel_tecnologico": tecnologia,
+    "herramientas": herramientas_seleccionadas,
+    "respuesta_practica": respuesta,
+    "certificaciones": certificaciones,
+    "certificado_url": certificado_url if certificaciones != "Ninguna" else None,
+    "proyecto": proyecto
+}
+
 if st.session_state.seccion_actual == 1:
     mostrar_seccion_1()
 elif st.session_state.seccion_actual == 2:
