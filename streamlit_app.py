@@ -100,9 +100,9 @@ if enviado:
 
     # Validación condicional de tecnología
     if "❌ Ninguno" in acceso_tecnologia:
-        st.warning("🔔 No cuentas con tecnología. Recuerda que puedes solicitar contenido por SMS o radio.")
-    elif "📱 Teléfono móvil (sin internet)" in acceso_tecnologia:
-        st.info("📲 Se te priorizará para contenidos vía WhatsApp.")
+            st.warning("🔔 No cuentas con tecnología. Recuerda que puedes solicitar contenido por SMS o radio.")
+        elif "📱 Teléfono móvil (sin internet)" in acceso_tecnologia:
+            st.info("📲 Se te priorizará para contenidos vía WhatsApp.")
 
-    db.collection("diagnostico_seccion1").add(doc)
+        db.collection("diagnostico_seccion1").add(doc)
         st.success("✅ ¡Gracias! Sección 1 enviada correctamente.")
