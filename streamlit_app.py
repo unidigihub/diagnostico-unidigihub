@@ -107,5 +107,6 @@ if enviado:
     db.collection("diagnostico_seccion1").add(doc)
     st.success("✅ ¡Gracias! Sección 1 enviada correctamente.")
 
-    # Sugerencia para navegación
-    st.markdown("👉 Haz clic en **Siguiente** para continuar a la Sección 2.")
+    # --- Función plantilla para Sección 2 ---
+def mostrar_seccion_2():
+    st.title("🟠 Sección 2: Problemáticas locales")
