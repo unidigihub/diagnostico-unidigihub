@@ -105,7 +105,4 @@ if enviado:
         st.info("📲 Se te priorizará para contenidos vía WhatsApp.")
 
     db.collection("diagnostico_seccion1").add(doc)
-    st.success("✅ ¡Gracias! Sección 1 enviada correctamente.")
-
-    # Sugerencia para navegación
-    st.markdown("👉 Haz clic en **Siguiente** para continuar a la Sección 2.")
+        st.success("✅ ¡Gracias! Sección 1 enviada correctamente.")
