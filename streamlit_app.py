@@ -18,7 +18,7 @@ st.image("logo_unidigihub.png", width=200)
 COLOR_AZUL = "#1E90FF"   # Innovación tecnológica
 COLOR_VERDE = "#6DBE45"  # Desarrollo sostenible
 
-# --- Estilos CSS globales para todos los botones ---
+# --- Estilos CSS globales para botones ---
 st.markdown(f"""
 <style>
 div.stButton > button {{
@@ -121,8 +121,7 @@ def mostrar_seccion_1():
             st.info("📲 Se te priorizará para contenidos vía WhatsApp.")
 
         st.success("✅ ¡Gracias! Sección 1 enviada correctamente.")
-        st.session_state.seccion_actual = 2
-        st.experimental_rerun()
+        st.session_state.seccion_1_enviado = True
 
 # --- Sección 2 ---
 def mostrar_seccion_2():
@@ -187,8 +186,7 @@ def mostrar_seccion_2():
         }
         db.collection("diagnostico_seccion2").add(doc)
         st.success("✅ ¡Gracias! Sección 2 enviada correctamente.")
-        st.session_state.seccion_actual = 3
-        st.experimental_rerun()
+        st.session_state.seccion_2_enviado = True
 
 # --- Mostrar sección según estado ---
 if "seccion_actual" not in st.session_state:
@@ -213,6 +211,12 @@ with col1:
 
 with col3:
     if st.session_state.seccion_actual < 7:
-        if st.button("Siguiente ➡️", key="btn_siguiente"):
-            st.session_state.seccion_actual += 1
-            st.experimental_rerun()
+        # Solo permite avanzar si la sección actual fue enviada
+        seccion_actual = st.session_state.seccion_actual
+        seccion_enviada = st.session_state.get(f"seccion_{seccion_actual}_enviado", False)
+        if seccion_enviada:
+            if st.button("Siguiente ➡️", key="btn_siguiente"):
+                st.session_state.seccion_actual += 1
+                st.experimental_rerun()
+        else:
+            st.button("Siguiente ➡️ (Completa la sección)", key="btn_siguiente_disabled", disabled=True)
