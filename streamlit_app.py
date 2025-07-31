@@ -44,7 +44,7 @@ with st.form("form_datos_demograficos"):
     comunidad = st.text_input("3. Municipio o comunidad")
 
     # Edad
-    edad = st.slider("4. ¿Cuál es tu edad?", min_value=15, max_value=90, step=1)
+    edad = st.slider("4. ¿Cuál es tu edad?", min_value=22, max_value=90, step=1)
 
     # Género
     genero = st.selectbox(
