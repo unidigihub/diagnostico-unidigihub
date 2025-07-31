@@ -148,8 +148,16 @@ def mostrar_seccion_2():
         db.collection("diagnostico_seccion2").add(doc)
         st.success("✅ ¡Gracias! Sección 2 enviada correctamente.")
        
-elif st.session_state.seccion_actual == 3:
-    mostrar_seccion_3()
+import streamlit as st
+from firebase_admin import firestore
+
+# Inicialización de la variable de sesión
+if "seccion_actual" not in st.session_state:
+    st.session_state.seccion_actual = 1
+
+# ----------------------------
+# SECCIÓN 3: Intereses profesionales
+# ----------------------------
 def mostrar_seccion_3():
     st.title("Sección 3: Intereses profesionales")
     st.write("Queremos conocerte mejor para ayudarte a diseñar una ruta de aprendizaje personalizada.")
@@ -161,18 +169,16 @@ def mostrar_seccion_3():
             ["🌱 AgriTech", "💰 FinTech", "🏥 HealthTech", "🌞 Energías Renovables"]
         )
 
-        # 2. Experiencia previa
+        # 2. Nivel de experiencia
         nivel = st.radio(
             "2. ¿Qué nivel de experiencia tienes?",
             ["🔍 UniExplorador (Ninguna/baja experiencia)", 
              "🛠️ UniCreador (Experiencia básica en proyectos)", 
              "🚀 UniVisionario (Experiencia avanzada con resultados)"]
         )
-        descripcion_exp = st.text_area(
-            "Describe tu experiencia (Ejemplo: curso básico de IoT):"
-        )
+        descripcion_exp = st.text_area("Describe tu experiencia (Ejemplo: curso básico de IoT):")
 
-        # 3. Áreas de interés (dependen del nivel seleccionado)
+        # 3. Áreas de interés (según nivel)
         st.write("3. Selecciona tus áreas de interés:")
         if "UniExplorador" in nivel:
             areas = st.multiselect(
@@ -192,7 +198,7 @@ def mostrar_seccion_3():
         else:
             areas = []
 
-        # 4. Complejidad deseada
+        # 4. Nivel de profundidad deseado
         complejidad = st.slider(
             "4. ¿Qué nivel de profundidad deseas alcanzar?",
             0, 10, 3,
@@ -222,15 +228,20 @@ def mostrar_seccion_3():
         st.success("✅ ¡Gracias! Has completado la Sección 3.")
         st.session_state.seccion_actual = 4
 
-
-# Mostrar sección según variable de estado
+# ----------------------------
+# Mostrar la sección actual
+# ----------------------------
 if st.session_state.seccion_actual == 1:
     mostrar_seccion_1()
 elif st.session_state.seccion_actual == 2:
     mostrar_seccion_2()
+elif st.session_state.seccion_actual == 3:
+    mostrar_seccion_3()
 
-# Botones para navegar entre secciones manualmente (opcional)
-col1, col2, col3 = st.columns([1,6,1])
+# ----------------------------
+# Navegación entre secciones (opcional)
+# ----------------------------
+col1, col2, col3 = st.columns([1, 6, 1])
 
 with col1:
     if st.session_state.seccion_actual > 1:
