@@ -28,7 +28,7 @@ div.stButton > button {{
     border-radius: 12px;
     border: none;
     font-size: 18px;
-    font-weight: 600;
+    font-weight: 300;
     cursor: pointer;
     transition: background-color 0.3s ease;
     background-color: {COLOR_AZUL};
