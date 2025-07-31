@@ -10,19 +10,57 @@ if not firebase_admin._apps:
     })
 db = firestore.client()
 
+# --- Configuración página ---
 st.set_page_config(page_title="Diagnóstico UniDigiHub", layout="centered")
 st.image("logo_unidigihub.png", width=200)
 
-# Inicializar variable para control de secciones
+# --- Variables de color UniDigiHub ---
+COLOR_AZUL = "#1E90FF"   # Innovación tecnológica
+COLOR_VERDE = "#6DBE45"  # Desarrollo sostenible
+
+# --- Inicializar control de sección ---
 if "seccion_actual" not in st.session_state:
     st.session_state.seccion_actual = 1
 
-# Función para mostrar Sección 1
+def boton_color(texto, color, key):
+    """
+    Botón grande y colorido con estilo UniDigiHub
+    """
+    with st.form(key):
+        clicked = st.form_submit_button(f'<p style="color:white; font-weight:bold; margin:0;">{texto}</p>',
+                                        use_container_width=True)
+        st.markdown(f"""
+        <style>
+        div.stButton > button {{
+            background-color: {color};
+            color: white;
+            height: 50px;
+            width: 140px;
+            border-radius: 12px;
+            border: none;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }}
+        div.stButton > button:hover {{
+            background-color: #187bcd;  /* color hover para azul */
+        }}
+        </style>
+        """, unsafe_allow_html=True)
+    return clicked
+
+# --- Sección 1 ---
 def mostrar_seccion_1():
     st.title("Sección 1: Datos demográficos")
     st.markdown("""
     ### 👋 ¡Bienvenida y bienvenido al Diagnóstico UniDigiHub!
+
     Este autodiagnóstico tiene como propósito conocerte mejor para ayudarte a identificar tu punto de partida en el mundo digital.
+
+    💡 **Tu participación nos permitirá diseñar experiencias formativas más inclusivas, útiles y adaptadas a tu realidad.**
+
+    No se requiere experiencia previa. Solo responde con sinceridad 😊
     """)
 
     with st.form("form_datos_demograficos"):
@@ -80,11 +118,15 @@ def mostrar_seccion_1():
 
         db.collection("diagnostico_seccion1").add(doc)
 
+        if "❌ Ninguno" in acceso_tecnologia:
+            st.warning("🔔 No cuentas con tecnología. Recuerda que puedes solicitar contenido por SMS o radio.")
+        elif "📱 Teléfono móvil (sin internet)" in acceso_tecnologia:
+            st.info("📲 Se te priorizará para contenidos vía WhatsApp.")
+
         st.success("✅ ¡Gracias! Sección 1 enviada correctamente.")
-        # Cambiar a la siguiente sección
         st.session_state.seccion_actual = 2
 
-# Función para mostrar Sección 2
+# --- Sección 2 ---
 def mostrar_seccion_2():
     st.title("Sección 2: Problemáticas locales")
     st.write("Por favor, responde estas preguntas sobre los desafíos que enfrenta tu comunidad.")
@@ -147,25 +189,27 @@ def mostrar_seccion_2():
         }
         db.collection("diagnostico_seccion2").add(doc)
         st.success("✅ ¡Gracias! Sección 2 enviada correctamente.")
-        # Puedes aquí decidir si avanzas a la siguiente sección o dejas que el usuario decida
-        # Por ejemplo:
-        # st.session_state.seccion_actual = 3
+        st.session_state.seccion_actual = 3
 
-# Mostrar sección según variable de estado
+# --- Mostrar sección según estado ---
 if st.session_state.seccion_actual == 1:
     mostrar_seccion_1()
 elif st.session_state.seccion_actual == 2:
     mostrar_seccion_2()
+else:
+    st.title("¡Gracias por completar el diagnóstico!")
+    st.write("Pronto te contactaremos con tus resultados y rutas personalizadas.")
 
-# Botones para navegar entre secciones manualmente (opcional)
+# --- Navegación ---
 col1, col2, col3 = st.columns([1,6,1])
 
 with col1:
     if st.session_state.seccion_actual > 1:
-        if st.button("⬅️ Sección anterior"):
+        if boton_color("⬅️ Sección anterior", COLOR_VERDE, "btn_anterior"):
             st.session_state.seccion_actual -= 1
 
 with col3:
     if st.session_state.seccion_actual < 7:
-        if st.button("Siguiente ➡️"):
+        if boton_color("Siguiente ➡️", COLOR_AZUL, "btn_siguiente"):
             st.session_state.seccion_actual += 1
+
