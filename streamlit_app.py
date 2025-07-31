@@ -147,11 +147,8 @@ def mostrar_seccion_2():
         }
         db.collection("diagnostico_seccion2").add(doc)
         st.success("✅ ¡Gracias! Sección 2 enviada correctamente.")
-       
-import streamlit as st
-from firebase_admin import firestore
-
-# Cambiar a la siguiente sección
+        
+        # Cambiar a la siguiente sección
         st.session_state.seccion_actual = 3
 # ----------------------------
 # SECCIÓN 3: Intereses profesionales
