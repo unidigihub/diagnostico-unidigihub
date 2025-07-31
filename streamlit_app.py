@@ -109,4 +109,81 @@ if enviado:
 
     # --- Función plantilla para Sección 2 ---
 def mostrar_seccion_2():
-    st.title("🟠 Sección 2: Problemáticas locales")
+    st.title("Sección 2: Problemáticas locales")
+
+    st.write("Por favor, responde estas preguntas sobre los desafíos que enfrenta tu comunidad.")
+
+    with st.form("form_seccion2"):
+
+        # 1. Problema principal (campo texto guiado)
+        problema_principal = st.text_area(
+            "1. Describe el problema principal que afecta a tu comunidad",
+            placeholder='Ejemplo: "Sequía en cultivos", "Falta de acceso a servicios de salud", "Cortes frecuentes de energía"'
+        )
+        # Aquí podrías implementar sugerencias basadas en ubicación con integración futura Google Maps API
+
+        # 2. Relación con sectores (selector múltiple con íconos)
+        sectores = st.multiselect(
+            "2. ¿Con qué sectores crees que se relaciona este problema?",
+            options=[
+                "Agricultura y tecnología",
+                "Finanzas digitales",
+                "Salud comunitaria",
+                "Energía limpia"
+            ]
+        )
+        # Puedes agregar íconos junto a cada opción con HTML/Markdown o librerías externas si lo deseas
+
+        # 3. Impacto del problema (escala Likert + texto)
+        impacto = st.slider(
+            "3. ¿Cuál es el impacto del problema en tu comunidad?",
+            min_value=1, max_value=5, value=3,
+            format="%d (1= Bajo impacto, 5= Crítico)"
+        )
+        impacto_descripcion = st.text_area(
+            "¿Cómo afecta este problema a tu comunidad?"
+        )
+        # En backend podrías usar análisis de sentimiento con Google Natural Language API para detectar urgencia
+
+        # 4. Soluciones intentadas (checkbox + texto libre)
+        soluciones = st.multiselect(
+            "4. ¿Qué soluciones se han intentado para este problema?",
+            options=[
+                "Tecnología básica (ej: apps móviles)",
+                "Métodos tradicionales",
+                "Ninguna"
+            ]
+        )
+        texto_soluciones = st.text_area(
+            "Describe brevemente soluciones fallidas o exitosas"
+        )
+        # Aquí podrías usar NLP avanzado para clasificar comentarios
+
+        # 5. Recursos disponibles (selector múltiple)
+        recursos = st.multiselect(
+            "5. ¿Qué recursos tiene tu comunidad para enfrentar este problema?",
+            options=[
+                "Acceso a internet",
+                "Tierra cultivable",
+                "Mano de obra",
+                "Ninguno"
+            ]
+        )
+        # Puedes agregar íconos a cada opción y hacer geomatching con BigQuery en backend
+
+        enviado = st.form_submit_button("Enviar sección 2")
+
+    if enviado:
+        doc = {
+            "problema_principal": problema_principal,
+            "sectores": sectores,
+            "impacto": impacto,
+            "impacto_descripcion": impacto_descripcion,
+            "soluciones": soluciones,
+            "texto_soluciones": texto_soluciones,
+            "recursos": recursos,
+            "timestamp": firestore.SERVER_TIMESTAMP
+        }
+        db.collection("diagnostico_seccion2").add(doc)
+        st.success("✅ ¡Gracias! Sección 2 enviada correctamente.")
+
