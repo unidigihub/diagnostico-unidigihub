@@ -189,9 +189,6 @@ def mostrar_seccion_2():
         st.session_state.seccion_2_enviado = True
 
 # --- Mostrar sección según estado ---
-if "seccion_actual" not in st.session_state:
-    st.session_state.seccion_actual = 1
-
 if st.session_state.seccion_actual == 1:
     mostrar_seccion_1()
 elif st.session_state.seccion_actual == 2:
@@ -200,23 +197,37 @@ else:
     st.title("¡Gracias por completar el diagnóstico!")
     st.write("Pronto te contactaremos con tus resultados y rutas personalizadas.")
 
-# --- Navegación ---
-col1, col2, col3 = st.columns([1,6,1])
+# --- Navegación (mejorada visualmente) ---
+st.markdown("""<style>
+.nav-button {
+    display: inline-block;
+    background-color: #1E90FF;
+    color: white;
+    padding: 10px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    text-align: center;
+    margin: 10px;
+}
+.nav-button:disabled {
+    background-color: #ccc;
+}
+</style>""", unsafe_allow_html=True)
 
+col1, col2, col3 = st.columns([1,6,1])
 with col1:
     if st.session_state.seccion_actual > 1:
-        if st.button("⬅️ Sección anterior", key="btn_anterior"):
+        if st.button("⬅️ Sección anterior"):
             st.session_state.seccion_actual -= 1
-            st.experimental_rerun()
 
 with col3:
-    if st.session_state.seccion_actual < 7:
-        # Solo permite avanzar si la sección actual fue enviada
-        seccion_actual = st.session_state.seccion_actual
-        seccion_enviada = st.session_state.get(f"seccion_{seccion_actual}_enviado", False)
-        if seccion_enviada:
-            if st.button("Siguiente ➡️", key="btn_siguiente"):
-                st.session_state.seccion_actual += 1
-                st.experimental_rerun()
-        else:
-            st.button("Siguiente ➡️ (Completa la sección)", key="btn_siguiente_disabled", disabled=True)
+    seccion_actual = st.session_state.seccion_actual
+    seccion_enviada = st.session_state.get(f"seccion_{seccion_actual}_enviado", False)
+
+    if seccion_enviada:
+        if st.button("Siguiente ➡️"):
+            st.session_state.seccion_actual += 1
+    else:
+        st.markdown('<button class="nav-button" disabled>Completa la sección</button>', unsafe_allow_html=True)
