@@ -105,7 +105,6 @@ if enviado:
         st.info("📲 Se te priorizará para contenidos vía WhatsApp.")
 
     db.collection("diagnostico_seccion1").add(doc)
-
         st.success("✅ ¡Gracias! Sección 1 enviada correctamente.")
         # Cambiar a la siguiente sección
         st.session_state.seccion_actual = 2
