@@ -15,7 +15,7 @@ db = firestore.client()
 # --- Configuración página ---
 st.set_page_config(page_title="Diagnóstico UniDigiHub – Sección 1", layout="centered")
 st.image("logo_unidigihub.png", width=200)
-st.title("🟢 Sección 1: Datos demográficos")
+st.title("Sección 1: Datos demográficos")
 
 with st.form("form_datos_demograficos"):
     # País con nombres indígenas
