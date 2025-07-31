@@ -147,9 +147,81 @@ def mostrar_seccion_2():
         }
         db.collection("diagnostico_seccion2").add(doc)
         st.success("✅ ¡Gracias! Sección 2 enviada correctamente.")
-        # Puedes aquí decidir si avanzas a la siguiente sección o dejas que el usuario decida
-        # Por ejemplo:
-        # st.session_state.seccion_actual = 3
+       
+elif st.session_state.seccion_actual == 3:
+    mostrar_seccion_3()
+def mostrar_seccion_3():
+    st.title("Sección 3: Intereses profesionales")
+    st.write("Queremos conocerte mejor para ayudarte a diseñar una ruta de aprendizaje personalizada.")
+
+    with st.form("form_seccion3"):
+        # 1. Sector de interés
+        sector = st.selectbox(
+            "1. ¿Cuál es el sector que más te interesa?",
+            ["🌱 AgriTech", "💰 FinTech", "🏥 HealthTech", "🌞 Energías Renovables"]
+        )
+
+        # 2. Experiencia previa
+        nivel = st.radio(
+            "2. ¿Qué nivel de experiencia tienes?",
+            ["🔍 UniExplorador (Ninguna/baja experiencia)", 
+             "🛠️ UniCreador (Experiencia básica en proyectos)", 
+             "🚀 UniVisionario (Experiencia avanzada con resultados)"]
+        )
+        descripcion_exp = st.text_area(
+            "Describe tu experiencia (Ejemplo: curso básico de IoT):"
+        )
+
+        # 3. Áreas de interés (dependen del nivel seleccionado)
+        st.write("3. Selecciona tus áreas de interés:")
+        if "UniExplorador" in nivel:
+            areas = st.multiselect(
+                "Opciones para UniExplorador",
+                ["Introducción a IoT", "Conceptos básicos de blockchain"]
+            )
+        elif "UniCreador" in nivel:
+            areas = st.multiselect(
+                "Opciones para UniCreador",
+                ["Diseño de apps AgriTech", "Análisis de datos en salud"]
+            )
+        elif "UniVisionario" in nivel:
+            areas = st.multiselect(
+                "Opciones para UniVisionario",
+                ["Optimización de redes neuronales", "Sistemas autónomos de energía"]
+            )
+        else:
+            areas = []
+
+        # 4. Complejidad deseada
+        complejidad = st.slider(
+            "4. ¿Qué nivel de profundidad deseas alcanzar?",
+            0, 10, 3,
+            help="0 = Básico (Ej: Aprender a usar sensores), 10 = Avanzado (Ej: Desarrollar un MVP escalable)"
+        )
+        if complejidad >= 8 and "UniExplorador" in nivel:
+            st.warning("⚠️ El nivel seleccionado es muy avanzado para un perfil Explorador. Considera ajustar tu nivel o tomar una formación básica primero.")
+
+        # 5. Proyecto deseado
+        proyecto = st.text_area(
+            "5. Describe una idea de proyecto que te gustaría desarrollar.\n\nEjemplos:\n- UniExplorador: Crear un huerto con sensores básicos\n- UniCreador: Automatizar riego con Arduino\n- UniVisionario: Modelar una red inteligente de energía solar"
+        )
+
+        enviado = st.form_submit_button("Enviar sección 3")
+
+    if enviado:
+        doc = {
+            "sector_interes": sector,
+            "nivel_experiencia": nivel,
+            "descripcion_experiencia": descripcion_exp,
+            "areas_interes": areas,
+            "complejidad_deseada": complejidad,
+            "proyecto_deseado": proyecto,
+            "timestamp": firestore.SERVER_TIMESTAMP
+        }
+        db.collection("diagnostico_seccion3").add(doc)
+        st.success("✅ ¡Gracias! Has completado la Sección 3.")
+        st.session_state.seccion_actual = 4
+
 
 # Mostrar sección según variable de estado
 if st.session_state.seccion_actual == 1:
