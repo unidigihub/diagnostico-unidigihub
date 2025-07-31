@@ -121,7 +121,8 @@ def mostrar_seccion_1():
             st.info("📲 Se te priorizará para contenidos vía WhatsApp.")
 
         st.success("✅ ¡Gracias! Sección 1 enviada correctamente.")
-        st.session_state.seccion_1_enviado = True
+        # Cambiar a la siguiente sección
+        st.session_state.seccion_actual = 2
 
 # --- Sección 2 ---
 def mostrar_seccion_2():
