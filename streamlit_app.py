@@ -57,7 +57,7 @@ if st.session_state.current_section == 1:
     with st.form("form_s1"):
         pais = st.selectbox("1. ¿En qué país resides?", ["", "México", "Colombia", "Chile", "Brasil", "Argentina", "Costa Rica", "Ecuador", "El Salvador", "Perú"])
         departamento = st.text_input("2. Departamento o Estado donde vives")
-        edad = st.slider("3. ¿Cuál es tu edad?", 15, 90, 25)
+        edad = st.slider("3. ¿Cuál es tu edad?", 25, 90, 25)
         genero = st.selectbox("4. ¿Con qué género te identificas?", ["", "Femenino", "Masculino", "No binario", "Prefiero no decir", "Muxe (zapoteco)", "Otro"])
         
         submitted_s1 = st.form_submit_button("Guardar y Continuar")
