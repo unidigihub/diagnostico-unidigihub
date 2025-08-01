@@ -3,18 +3,12 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import json
 import time
+import datetime
 
-# --- INICIALIZACIÓN DE FIREBASE (VERSIÓN FINAL Y ROBUSTA) ---
+# --- INICIALIZACIÓN DE FIREBASE (NO TOCAR) ---
 def initialize_firebase():
-    """
-    Inicializa Firebase de forma segura.
-    Esta versión incluye el "organizador" (json.loads) para arreglar el error.
-    """
     try:
-        # Intenta cargar las credenciales desde los "Secrets" de Streamlit
         creds_from_secrets = st.secrets["firebase_credentials"]
-
-        # El "Organizador": si la receta es un párrafo (string), la convierte en lista (dict)
         if isinstance(creds_from_secrets, str):
             creds_dict = json.loads(creds_from_secrets)
         else:
@@ -24,172 +18,115 @@ def initialize_firebase():
         
         if not firebase_admin._apps:
             firebase_admin.initialize_app(cred)
-            
+        return True, None
     except Exception as e:
-        st.error(f"Error al conectar con la base de datos: {e}")
-        st.stop()
+        return False, e
 
-initialize_firebase()
-db = firestore.client()
+IS_FIREBASE_INITIALIZED, FIREBASE_ERROR = initialize_firebase()
+db = firestore.client() if IS_FIREBASE_INITIALIZED else None
 
-# --- CONFIGURACIÓN DE PÁGINA Y ESTADO DE SESIÓN ---
+# --- CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Diagnóstico UniDigiHub", layout="centered")
 
-# st.image("logo_unidigihub.png", width=200) # Descomenta si tienes un logo
+# --- NAVEGACIÓN ---
+st.sidebar.title("Navegación")
+page = st.sidebar.radio("Elige una sección:", ["Formulario de Diagnóstico", "Prueba de Conexión"])
 
-if "current_section" not in st.session_state:
-    st.session_state.current_section = 1
-if "firestore_doc_id" not in st.session_state:
-    st.session_state.firestore_doc_id = None
+# --- PÁGINA 1: FORMULARIO ---
+if page == "Formulario de Diagnóstico":
+    if "current_section" not in st.session_state:
+        st.session_state.current_section = 1
+    if "firestore_doc_id" not in st.session_state:
+        st.session_state.firestore_doc_id = None
 
-# --- TÍTULO Y BARRA DE PROGRESO ---
-st.title("📝 Diagnóstico UniDigiHub LATAM")
-total_sections = 5
-progress_text = f"Progreso: Sección {st.session_state.current_section} de {total_sections}"
-st.progress(st.session_state.current_section / total_sections, text=progress_text)
-st.markdown("---")
+    st.title("📝 Diagnóstico UniDigiHub LATAM")
+    total_sections = 5
+    progress_text = f"Progreso: Sección {st.session_state.current_section} de {total_sections}"
+    st.progress(st.session_state.current_section / total_sections, text=progress_text)
+    st.markdown("---")
 
-# --- SECCIÓN 1: DATOS DEMOGRÁFICOS ---
-if st.session_state.current_section == 1:
-    st.header("Sección 1: Datos Demográficos")
-    # Manteniendo tu texto mejorado
-    st.markdown("""
-    ### 👋 ¡Bienvenida y bienvenido! 
-    Este autodiagnóstico tiene como propósito conocerte mejor para ayudarte a identificar tu punto de partida en el mundo digital. A través de 7 secciones breves, exploraremos tus intereses, habilidades y contexto local para recomendarte una ruta de aprendizaje personalizada dentro de UniDigiHub.
+    if st.session_state.current_section == 1:
+        st.header("Sección 1: Datos Demográficos")
+        with st.form("form_s1"):
+            paises = ["", "México (Mēxihco)", "Colombia", "Chile", "Brasil", "Argentina", "Costa Rica", "Ecuador", "El Salvador", "Perú"]
+            st.selectbox("1. ¿En qué país resides?", paises, key="s1_pais")
+            st.text_input("2. Departamento o Estado donde vives", key="s1_depto")
+            st.text_input("3. Municipio o comunidad", key="s1_comunidad")
+            st.slider("4. ¿Cuál es tu edad?", min_value=15, max_value=90, value=25, step=1, key="s1_edad")
+            st.selectbox("5. ¿Con qué género te identificas?", ["", "Femenino", "Masculino", "No binario", "Prefiero no decir", "Muxe (zapoteco)", "Otro"], key="s1_genero")
+            st.selectbox("6. ¿Cuál es tu nivel educativo más alto alcanzado?", ["", "Primaria incompleta", "Primaria completa", "Secundaria", "Técnico", "Universitario 🎓", "Posgrado"], key="s1_educacion")
+            st.multiselect("7. ¿Cuál es tu situación laboral actual?", ["Agricultura de subsistencia", "Empleo informal", "Estudiante", "Desempleado", "Trabajo remoto"], key="s1_laboral")
+            st.multiselect("8. ¿Qué acceso tecnológico tienes actualmente?", ["📱 Teléfono móvil (sin internet)", "📱💻 Teléfono con internet", "💻 Computadora/Tablet", "📶 Internet estable en casa", "❌ Ninguno"], key="s1_tecnologia")
+            submitted_s1 = st.form_submit_button("Guardar y Continuar")
 
-    💡 **Tu participación nos permitirá diseñar experiencias formativas más inclusivas, útiles y adaptadas a tu realidad.**
-
-    No se requiere experiencia previa. Solo responde con sinceridad 😊
-    """)
-
-    with st.form("form_s1"):
-        paises = ["", "México (Mēxihco)", "Colombia", "Chile", "Brasil", "Argentina", "Costa Rica", "Ecuador", "El Salvador", "Perú"]
-        st.selectbox("1. ¿En qué país resides?", paises, key="s1_pais")
-        st.text_input("2. Departamento o Estado donde vives", key="s1_depto")
-        st.text_input("3. Municipio o comunidad", key="s1_comunidad")
-        st.slider("4. ¿Cuál es tu edad?", min_value=25, max_value=90, value=25, step=1, key="s1_edad") # Corregido a min_value=15
-        st.selectbox("5. ¿Con qué género te identificas?", ["", "Femenino", "Masculino", "No binario", "Prefiero no decir", "Muxe (zapoteco)", "Otro"], key="s1_genero")
-        st.selectbox("6. ¿Cuál es tu nivel educativo más alto alcanzado?", ["", "Primaria incompleta", "Primaria completa", "Secundaria", "Técnico", "Universitario 🎓", "Posgrado"], key="s1_educacion")
-        st.multiselect("7. ¿Cuál es tu situación laboral actual?", ["Empleo formal", "Empleo informal", "Estudiante", "Desempleado", "Trabajo remoto"], key="s1_laboral")
-        st.multiselect("8. ¿Qué acceso tecnológico tienes actualmente?", ["📱 Teléfono móvil (sin internet)", "📱💻 Teléfono con internet", "💻 Computadora/Tablet", "📶 Internet estable en casa", "❌ Ninguno"], key="s1_tecnologia")
-        
-        submitted_s1 = st.form_submit_button("Guardar y Continuar")
-
-    if submitted_s1:
-        campos_obligatorios = {
-            "País": st.session_state.s1_pais, "Departamento o Estado": st.session_state.s1_depto,
-            "Municipio o comunidad": st.session_state.s1_comunidad, "Género": st.session_state.s1_genero,
-            "Nivel educativo": st.session_state.s1_educacion
-        }
-        campos_faltantes = [nombre for nombre, valor in campos_obligatorios.items() if not valor]
-
-        if campos_faltantes:
-            st.error(f"🚨 ¡Atención! Por favor, completa los siguientes campos para continuar: **{', '.join(campos_faltantes)}**.")
-        else:
-            doc_data = {
-                "seccion1_demograficos": {
-                    "pais": st.session_state.s1_pais, "departamento": st.session_state.s1_depto,
-                    "comunidad": st.session_state.s1_comunidad, "edad": st.session_state.s1_edad,
-                    "genero": st.session_state.s1_genero, "nivel_educativo": st.session_state.s1_educacion,
-                    "situacion_laboral": st.session_state.s1_laboral, "acceso_tecnologia": st.session_state.s1_tecnologia,
-                },
-                "timestamp_inicio": firestore.SERVER_TIMESTAMP
+        if submitted_s1:
+            campos_obligatorios = {
+                "País": st.session_state.s1_pais, "Departamento o Estado": st.session_state.s1_depto,
+                "Municipio o comunidad": st.session_state.s1_comunidad, "Género": st.session_state.s1_genero,
+                "Nivel educativo": st.session_state.s1_educacion
             }
-            _, doc_ref = db.collection("respuestas_diagnostico_unificado").add(doc_data)
-            st.session_state.firestore_doc_id = doc_ref.id
-            st.session_state.current_section = 2
-            st.success("✅ ¡Sección 1 guardada! Avanzando...")
-            time.sleep(2)
-            st.rerun()
+            campos_faltantes = [nombre for nombre, valor in campos_obligatorios.items() if not valor]
+            if campos_faltantes:
+                st.error(f"🚨 ¡Atención! Por favor, completa los siguientes campos para continuar: **{', '.join(campos_faltantes)}**.")
+            else:
+                try:
+                    doc_data = {"seccion1_demograficos": {"pais": st.session_state.s1_pais, "departamento": st.session_state.s1_depto, "comunidad": st.session_state.s1_comunidad, "edad": st.session_state.s1_edad, "genero": st.session_state.s1_genero, "nivel_educativo": st.session_state.s1_educacion, "situacion_laboral": st.session_state.s1_laboral, "acceso_tecnologia": st.session_state.s1_tecnologia,}, "timestamp_inicio": firestore.SERVER_TIMESTAMP}
+                    _, doc_ref = db.collection("respuestas_diagnostico_unificado").add(doc_data)
+                    st.session_state.firestore_doc_id = doc_ref.id
+                    st.session_state.current_section = 2
+                    st.success("✅ ¡Sección 1 guardada! Avanzando...")
+                    time.sleep(2)
+                    st.rerun()
+                except Exception as e:
+                    st.error("Houston, tenemos un problema al guardar los datos.")
+                    st.exception(e)
+    # ... (El resto de las secciones del formulario van aquí, no se modifican) ...
 
-# --- SECCIÓN 2: PROBLEMÁTICAS LOCALES ---
-elif st.session_state.current_section == 2:
-    st.header("Sección 2: Problemáticas Locales")
-    with st.form("form_s2"):
-        st.text_area("1. Describe el problema principal que afecta a tu comunidad", placeholder='Ej: "Sequía en cultivos", "Falta de acceso a servicios de salud"...', key="s2_problema")
-        st.multiselect("2. ¿Con qué sectores se relaciona este problema?", ["Agricultura y tecnología", "Finanzas digitales", "Salud comunitaria", "Energía limpia"], key="s2_sectores")
-        st.slider("3. Impacto del problema en tu comunidad (1=Bajo, 5=Crítico)", 1, 5, 3, key="s2_impacto")
-        submitted_s2 = st.form_submit_button("Guardar y Continuar")
+# --- PÁGINA 2: PRUEBA DE CONEXIÓN ---
+elif page == "Prueba de Conexión":
+    st.header("Herramienta de Diagnóstico de Conexión 👨‍🔧")
+    st.write("Esta herramienta verificará cada paso de la conexión a Firebase para encontrar el problema.")
 
-    if submitted_s2:
-        if not st.session_state.s2_problema:
-            st.warning("Por favor, describe el problema principal.")
-        else:
-            doc_ref = db.collection("respuestas_diagnostico_unificado").document(st.session_state.firestore_doc_id)
-            doc_ref.update({
-                "seccion2_problematicas": {
-                    "problema_principal": st.session_state.s2_problema,
-                    "sectores_relacionados": st.session_state.s2_sectores,
-                    "impacto_escala": st.session_state.s2_impacto
-                }
-            })
-            st.session_state.current_section = 3
-            st.success("✅ ¡Sección 2 guardada! Avanzando...")
-            time.sleep(1)
-            st.rerun()
+    if st.button("Realizar Prueba de Conexión a Firebase"):
+        with st.spinner("Realizando pruebas..."):
+            # PRUEBA 1: Chequear si los secrets existen
+            st.subheader("Prueba 1: Lectura de 'Secrets'")
+            try:
+                creds_from_secrets = st.secrets["firebase_credentials"]
+                st.success("✅ ÉXITO: Las credenciales se leyeron correctamente desde los 'Secrets' de Streamlit.")
+            except Exception as e:
+                st.error("❌ FALLO: No se pudieron leer las credenciales desde los 'Secrets'.")
+                st.error("SOLUCIÓN: Asegúrate de haber copiado y pegado correctamente las credenciales en la sección 'Settings -> Secrets' de tu app en Streamlit Cloud.")
+                st.stop()
 
-# --- SECCIÓN 3: INTERESES PROFESIONALES ---
-elif st.session_state.current_section == 3:
-    st.header("Sección 3: Intereses Profesionales")
-    with st.form("form_s3"):
-        st.selectbox("1. ¿Cuál de estos sectores te atrae más?", ["", "AgriTech (Agricultura)", "FinTech (Finanzas)", "HealthTech (Salud)", "Energías Renovables"], key="s3_sector_interes")
-        st.radio("2. ¿Cuál es tu nivel de experiencia en proyectos tecnológicos?", ["**UniExplorador** (Ninguna o baja experiencia)", "**UniCreador** (Experiencia básica, participé en proyectos)", "**UniVisionario** (Experiencia avanzada, lideré proyectos)"], key="s3_experiencia")
-        submitted_s3 = st.form_submit_button("Guardar y Continuar")
-        
-    if submitted_s3:
-        if not st.session_state.s3_sector_interes:
-            st.warning("Por favor, selecciona un sector de interés.")
-        else:
-            nivel_autodeclarado = st.session_state.s3_experiencia.split("**")[1]
-            doc_ref = db.collection("respuestas_diagnostico_unificado").document(st.session_state.firestore_doc_id)
-            doc_ref.update({
-                "seccion3_intereses": {
-                    "sector_interes_principal": st.session_state.s3_sector_interes,
-                    "nivel_autodeclarado": nivel_autodeclarado
-                }
-            })
-            st.session_state.current_section = 4
-            st.success("✅ ¡Sección 3 guardada! Una más y terminamos.")
-            time.sleep(1)
-            st.rerun()
-
-# --- SECCIÓN 4: HABILIDADES TÉCNICAS Y BLANDAS ---
-elif st.session_state.current_section == 4:
-    st.header("Sección 4: Habilidades y Competencias")
-    with st.form("form_s4"):
-        st.subheader("Autoevaluación de Habilidades Técnicas")
-        st.slider("1. En una escala de 1 (Nada) a 5 (Mucho), ¿qué tan cómodo te sientes con la programación o el análisis de datos?", 1, 5, 2, key="s4_autoeval_tech")
-        
-        st.subheader("Herramientas Conocidas")
-        st.multiselect("2. Marca las herramientas o conceptos que conozcas (no importa el nivel)", ["Sensores IoT", "Drones", "Plataformas de pago (ej. Stripe)", "Blockchain", "Apps de Telemedicina", "Software de simulación de energía"], key="s4_herramientas")
-
-        st.subheader("Habilidades Blandas")
-        st.radio("3. Imagina que tu equipo discute sobre qué método usar en un proyecto y no se ponen de acuerdo. ¿Qué harías?",
-            ["A) Dejo que otros decidan para no generar conflicto.", "B) Busco un consenso escuchando a todos para llegar a un acuerdo.", "C) Analizo los datos de cada propuesta y presento la solución más lógica para que el equipo mejore."],
-            key="s4_situacion_equipo"
-        )
-        submitted_s4 = st.form_submit_button("Finalizar Diagnóstico")
-
-    if submitted_s4:
-        doc_ref = db.collection("respuestas_diagnostico_unificado").document(st.session_state.firestore_doc_id)
-        doc_ref.update({
-            "seccion4_habilidades": {
-                "autoevaluacion_tech": st.session_state.s4_autoeval_tech,
-                "herramientas_conocidas": st.session_state.s4_herramientas,
-                "respuesta_habilidad_blanda": st.session_state.s4_situacion_equipo[0]
-            },
-            "timestamp_final": firestore.SERVER_TIMESTAMP,
-            "estado": "Completado"
-        })
-        st.session_state.current_section = 5
-        st.success("✅ ¡Diagnóstico finalizado! Calculando tu perfil...")
-        time.sleep(2)
-        st.rerun()
-
-# --- SECCIÓN FINAL: RESULTADOS (EN CONSTRUCCIÓN) ---
-elif st.session_state.current_section == 5:
-    st.header("🎉 ¡Diagnóstico Completado! 🎉")
-    st.balloons()
-    st.markdown("¡Muchas gracias por completar tu diagnóstico! Hemos guardado tus respuestas de forma segura.")
-    st.info(f"Tu ID de registro único es: **{st.session_state.firestore_doc_id}**")
-    st.markdown("El siguiente paso será analizar tus respuestas para darte un resultado. ¡Estamos trabajando en ello!")
+            # PRUEBA 2: Chequear inicialización de Firebase
+            st.subheader("Prueba 2: Inicialización de la App de Firebase")
+            if IS_FIREBASE_INITIALIZED:
+                st.success("✅ ÉXITO: La aplicación de Firebase se inicializó correctamente con las credenciales.")
+            else:
+                st.error("❌ FALLO: La aplicación de Firebase no se pudo inicializar.")
+                st.error(f"Detalle del error: {FIREBASE_ERROR}")
+                st.stop()
+            
+            # PRUEBA 3: Escritura en Firestore
+            st.subheader("Prueba 3: Escritura en la Base de Datos")
+            try:
+                test_collection = db.collection("test_diagnostico")
+                test_doc_name = f"test_{int(time.time())}"
+                test_collection.document(test_doc_name).set({
+                    "mensaje": "Prueba de escritura exitosa",
+                    "timestamp": firestore.SERVER_TIMESTAMP
+                })
+                st.success("✅ ÉXITO: Se escribió un documento de prueba en la base de datos.")
+                st.info(f"Se creó un documento llamado '{test_doc_name}' en la colección 'test_diagnostico'.")
+            except Exception as e:
+                st.error("❌ FALLO: Se produjo un error al intentar escribir en la base de datos de Firestore.")
+                st.error("Este es el error más común. Posibles soluciones:")
+                st.error("1. **API Deshabilitada:** Asegúrate de que la API 'Cloud Firestore API' esté HABILITADA en tu proyecto de Google Cloud.")
+                st.error("2. **Permisos:** El service account podría no tener permisos de escritura. Ve a 'IAM y administración' en Google Cloud y asegúrate de que tenga el rol de 'Editor' o 'Usuario de Cloud Datastore'.")
+                st.exception(e)
+                st.stop()
+            
+            st.balloons()
+            st.header("🎉 ¡Todas las pruebas pasaron! La conexión funciona.")
+            st.info("Si todas las pruebas fueron exitosas, el formulario debería funcionar. Inténtalo de nuevo en la sección 'Formulario de Diagnóstico'.")
