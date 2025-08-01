@@ -1,279 +1,148 @@
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
+import time
 
-# --- Inicialización Firebase ---
-if not firebase_admin._apps:
-    cred = credentials.ApplicationDefault()
-    firebase_admin.initialize_app(cred, {
-        'projectId': 'diagnostico-unidigihub',
-    })
+# --- INICIALIZACIÓN SEGURA DE FIREBASE PARA STREAMLIT CLOUD ---
+def initialize_firebase():
+    try:
+        creds_dict = st.secrets["firebase_credentials"]
+        cred = credentials.Certificate(creds_dict)
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(cred)
+    except Exception as e:
+        st.error(f"Error al inicializar Firebase: {e}")
+        st.error("Asegúrate de haber configurado correctamente el 'Secret' de [firebase_credentials] en tu app de Streamlit Cloud.")
+        st.stop()
+
+initialize_firebase()
 db = firestore.client()
 
-# --- Configuración de página ---
+# --- CONFIGURACIÓN DE PÁGINA Y ESTADO DE SESIÓN ---
 st.set_page_config(page_title="Diagnóstico UniDigiHub", layout="centered")
-st.image("logo_unidigihub.png", width=200)
 
-# --- Inicializar variables de control ---
-if "seccion_actual" not in st.session_state:
-    st.session_state.seccion_actual = 1
+# st.image("logo_unidigihub.png", width=200) # Descomenta si tienes un logo
 
-# Variables para controlar envío de cada sección
-for i in range(1, 5):
-    key = f"seccion_{i}_enviado"
-    if key not in st.session_state:
-        st.session_state[key] = False
+if "current_section" not in st.session_state:
+    st.session_state.current_section = 1
+if "firestore_doc_id" not in st.session_state:
+    st.session_state.firestore_doc_id = None
 
-# Función para forzar recarga limpia sin usar st.experimental_rerun (evita errores)
-def recargar_app():
-    st.session_state["recarga"] = not st.session_state.get("recarga", False)
+# --- TÍTULO Y BARRA DE PROGRESO ---
+st.title("📝 Diagnóstico UniDigiHub LATAM")
+total_sections = 5
+progress_text = f"Progreso: Sección {st.session_state.current_section} de {total_sections}"
+st.progress(st.session_state.current_section / total_sections, text=progress_text)
+st.markdown("---")
 
-# --- Sección 1 ---
-def mostrar_seccion_1():
-    st.title("Sección 1: Datos demográficos")
-    st.markdown("""
-    ### 👋 ¡Bienvenida y bienvenido al Diagnóstico UniDigiHub!
-    Este autodiagnóstico tiene como propósito conocerte mejor para ayudarte a identificar tu punto de partida en el mundo digital.
-    """)
 
-    with st.form("form_datos_demograficos"):
-        paises = [
-            "México (Mēxihco)", "Colombia", "Chile", "Brasil", "Argentina",
-            "Costa Rica", "Ecuador", "El Salvador", "Perú"
-        ]
-        pais = st.selectbox("1. ¿En qué país resides?", paises)
+# --- SECCIÓN 1: DATOS DEMOGRÁFICOS ---
+if st.session_state.current_section == 1:
+    st.header("Sección 1: Datos Demográficos")
+    st.markdown("### 👋 ¡Bienvenida y bienvenido! \n Este diagnóstico nos ayudará a conocerte para personalizar tu ruta de aprendizaje.")
+
+    with st.form("form_s1"):
+        pais = st.selectbox("1. ¿En qué país resides?", ["", "México", "Colombia", "Chile", "Brasil", "Argentina", "Costa Rica", "Ecuador", "El Salvador", "Perú"])
         departamento = st.text_input("2. Departamento o Estado donde vives")
-        comunidad = st.text_input("3. Municipio o comunidad")
-        edad = st.slider("4. ¿Cuál es tu edad?", min_value=25, max_value=90, step=1)
-        genero = st.selectbox(
-            "5. ¿Con qué género te identificas?",
-            ["Femenino", "Masculino", "No binario", "Prefiero no decir", "Muxe (zapoteco)", "Otro"]
-        )
-        nivel_educativo = st.selectbox(
-            "6. ¿Cuál es tu nivel educativo más alto alcanzado?",
-            [
-                "Primaria incompleta", "Primaria completa", "Secundaria",
-                "Técnico", "Universitario 🎓", "Posgrado"
-            ]
-        )
-        situacion_laboral = st.multiselect(
-            "7. ¿Cuál es tu situación laboral actual?",
-            [
-                "Agricultura de subsistencia", "Empleo informal",
-                "Estudiante", "Desempleado", "Trabajo remoto"
-            ]
-        )
-        acceso_tecnologia = st.multiselect(
-            "8. ¿Qué acceso tecnológico tienes actualmente?",
-            [
-                "📱 Teléfono móvil (sin internet)",
-                "📱💻 Teléfono con internet",
-                "💻 Computadora/Tablet",
-                "📶 Internet estable en casa",
-                "❌ Ninguno"
-            ]
-        )
+        edad = st.slider("3. ¿Cuál es tu edad?", 15, 90, 25)
+        genero = st.selectbox("4. ¿Con qué género te identificas?", ["", "Femenino", "Masculino", "No binario", "Prefiero no decir", "Muxe (zapoteco)", "Otro"])
+        
+        submitted_s1 = st.form_submit_button("Guardar y Continuar")
 
-        enviado = st.form_submit_button("Enviar sección 1")
-
-    if enviado:
-        doc = {
-            "pais": pais,
-            "departamento": departamento,
-            "comunidad": comunidad,
-            "edad": edad,
-            "genero": genero,
-            "nivel_educativo": nivel_educativo,
-            "situacion_laboral": situacion_laboral,
-            "acceso_tecnologia": acceso_tecnologia,
-            "timestamp": firestore.SERVER_TIMESTAMP
-        }
-        db.collection("diagnostico_seccion1").add(doc)
-
-        st.success("✅ ¡Gracias! Sección 1 enviada correctamente.")
-        st.session_state.seccion_1_enviado = True
-        st.session_state.seccion_actual = 2
-        recargar_app()
-
-# --- Sección 2 ---
-def mostrar_seccion_2():
-    st.title("Sección 2: Problemáticas locales")
-    st.write("Por favor, responde estas preguntas sobre los desafíos que enfrenta tu comunidad.")
-
-    with st.form("form_seccion2"):
-        problema_principal = st.text_area(
-            "1. Describe el problema principal que afecta a tu comunidad",
-            placeholder='Ejemplo: "Sequía en cultivos", "Falta de acceso a servicios de salud", "Cortes frecuentes de energía"'
-        )
-        sectores = st.multiselect(
-            "2. ¿Con qué sectores crees que se relaciona este problema?",
-            options=[
-                "Agricultura y tecnología",
-                "Finanzas digitales",
-                "Salud comunitaria",
-                "Energía limpia"
-            ]
-        )
-        impacto = st.slider(
-            "3. ¿Cuál es el impacto del problema en tu comunidad?",
-            min_value=1, max_value=5, value=3,
-            format="%d (1= Bajo impacto, 5= Crítico)"
-        )
-        impacto_descripcion = st.text_area(
-            "¿Cómo afecta este problema a tu comunidad?"
-        )
-        soluciones = st.multiselect(
-            "4. ¿Qué soluciones se han intentado para este problema?",
-            options=[
-                "Tecnología básica (ej: apps móviles)",
-                "Métodos tradicionales",
-                "Ninguna"
-            ]
-        )
-        texto_soluciones = st.text_area(
-            "Describe brevemente soluciones fallidas o exitosas"
-        )
-        recursos = st.multiselect(
-            "5. ¿Qué recursos tiene tu comunidad para enfrentar este problema?",
-            options=[
-                "Acceso a internet",
-                "Tierra cultivable",
-                "Mano de obra",
-                "Ninguno"
-            ]
-        )
-
-        enviado = st.form_submit_button("Enviar sección 2")
-
-    if enviado:
-        doc = {
-            "problema_principal": problema_principal,
-            "sectores": sectores,
-            "impacto": impacto,
-            "impacto_descripcion": impacto_descripcion,
-            "soluciones": soluciones,
-            "texto_soluciones": texto_soluciones,
-            "recursos": recursos,
-            "timestamp": firestore.SERVER_TIMESTAMP
-        }
-        db.collection("diagnostico_seccion2").add(doc)
-        st.success("✅ ¡Gracias! Sección 2 enviada correctamente.")
-        st.session_state.seccion_2_enviado = True
-        st.session_state.seccion_actual = 3
-        recargar_app()
-
-# --- Sección 3 ---
-def mostrar_seccion_3():
-    st.title("Sección 3: Intereses profesionales")
-    st.write("Queremos conocerte mejor para ayudarte a diseñar una ruta de aprendizaje personalizada.")
-
-    with st.form("form_seccion3"):
-        # 1. Sector de interés
-        sector = st.selectbox(
-            "1. ¿Cuál es el sector que más te interesa?",
-            ["🌱 AgriTech", "💰 FinTech", "🏥 HealthTech", "🌞 Energías Renovables"]
-        )
-
-        # 2. Experiencia previa
-        nivel = st.radio(
-            "2. ¿Qué nivel de experiencia tienes?",
-            ["🔍 UniExplorador (Ninguna/baja experiencia)", 
-             "🛠️ UniCreador (Experiencia básica en proyectos)", 
-             "🚀 UniVisionario (Experiencia avanzada con resultados)"]
-        )
-        descripcion_exp = st.text_area("Describe tu experiencia (Ejemplo: curso básico de IoT):")
-
-        # 3. Áreas de interés (depende del nivel)
-        st.write("3. Selecciona tus áreas de interés:")
-        if "UniExplorador" in nivel:
-            areas = st.multiselect(
-                "Opciones para UniExplorador",
-                ["Introducción a IoT", "Conceptos básicos de blockchain"]
-            )
-        elif "UniCreador" in nivel:
-            areas = st.multiselect(
-                "Opciones para UniCreador",
-                ["Diseño de apps AgriTech", "Análisis de datos en salud"]
-            )
-        elif "UniVisionario" in nivel:
-            areas = st.multiselect(
-                "Opciones para UniVisionario",
-                ["Optimización de redes neuronales", "Sistemas autónomos de energía"]
-            )
+    if submitted_s1:
+        if not all([pais, departamento, genero]):
+            st.warning("Por favor, completa todos los campos obligatorios.")
         else:
-            areas = []
+            doc_data = {
+                "seccion1_demograficos": { "pais": pais, "departamento": departamento, "edad": edad, "genero": genero, },
+                "timestamp_inicio": firestore.SERVER_TIMESTAMP
+            }
+            _, doc_ref = db.collection("respuestas_diagnostico_unificado").add(doc_data)
+            st.session_state.firestore_doc_id = doc_ref.id
+            st.session_state.current_section = 2
+            st.success("✅ ¡Sección 1 guardada! Avanzando...")
+            time.sleep(1)
+            st.rerun()
 
-        # 4. Complejidad deseada
-        complejidad = st.slider(
-            "4. ¿Qué nivel de profundidad deseas alcanzar?",
-            0, 10, 3,
-            help="0 = Básico (Ej: Aprender a usar sensores), 10 = Avanzado (Ej: Desarrollar un MVP escalable)"
+# --- SECCIÓN 2: PROBLEMÁTICAS LOCALES ---
+elif st.session_state.current_section == 2:
+    st.header("Sección 2: Problemáticas Locales")
+    with st.form("form_s2"):
+        problema_principal = st.text_area("1. Describe el problema principal que afecta a tu comunidad", placeholder='Ej: "Sequía en cultivos", "Falta de acceso a servicios de salud"...')
+        sectores = st.multiselect("2. ¿Con qué sectores se relaciona este problema?", ["Agricultura y tecnología", "Finanzas digitales", "Salud comunitaria", "Energía limpia"])
+        impacto = st.slider("3. Impacto del problema en tu comunidad (1=Bajo, 5=Crítico)", 1, 5, 3)
+        submitted_s2 = st.form_submit_button("Guardar y Continuar")
+
+    if submitted_s2:
+        if not problema_principal: st.warning("Por favor, describe el problema principal.")
+        else:
+            doc_ref = db.collection("respuestas_diagnostico_unificado").document(st.session_state.firestore_doc_id)
+            doc_ref.update({ "seccion2_problematicas": { "problema_principal": problema_principal, "sectores_relacionados": sectores, "impacto_escala": impacto } })
+            st.session_state.current_section = 3
+            st.success("✅ ¡Sección 2 guardada! Avanzando...")
+            time.sleep(1)
+            st.rerun()
+
+# --- SECCIÓN 3: INTERESES PROFESIONALES ---
+elif st.session_state.current_section == 3:
+    st.header("Sección 3: Intereses Profesionales")
+    with st.form("form_s3"):
+        sector_interes = st.selectbox("1. ¿Cuál de estos sectores te atrae más?", ["", "AgriTech (Agricultura)", "FinTech (Finanzas)", "HealthTech (Salud)", "Energías Renovables"])
+        experiencia_previa = st.radio("2. ¿Cuál es tu nivel de experiencia en proyectos tecnológicos?", ["**UniExplorador** (Ninguna o baja experiencia)", "**UniCreador** (Experiencia básica, participé en proyectos)", "**UniVisionario** (Experiencia avanzada, lideré proyectos)"])
+        submitted_s3 = st.form_submit_button("Guardar y Continuar")
+        
+    if submitted_s3:
+        if not sector_interes: st.warning("Por favor, selecciona un sector de interés.")
+        else:
+            nivel_autodeclarado = experiencia_previa.split("**")[1]
+            doc_ref = db.collection("respuestas_diagnostico_unificado").document(st.session_state.firestore_doc_id)
+            doc_ref.update({ "seccion3_intereses": { "sector_interes_principal": sector_interes, "nivel_autodeclarado": nivel_autodeclarado } })
+            st.session_state.current_section = 4
+            st.success("✅ ¡Sección 3 guardada! Una más y terminamos.")
+            time.sleep(1)
+            st.rerun()
+
+# --- SECCIÓN 4: HABILIDADES TÉCNICAS Y BLANDAS ---
+elif st.session_state.current_section == 4:
+    st.header("Sección 4: Habilidades y Competencias")
+    with st.form("form_s4"):
+        st.subheader("Autoevaluación de Habilidades Técnicas")
+        autoevaluacion_tech = st.slider("1. En una escala de 1 (Nada) a 5 (Mucho), ¿qué tan cómodo te sientes con la programación o el análisis de datos?", 1, 5, 2)
+        
+        st.subheader("Herramientas Conocidas")
+        herramientas = st.multiselect("2. Marca las herramientas o conceptos que conozcas (no importa el nivel)", ["Sensores IoT", "Drones", "Plataformas de pago (ej. Stripe)", "Blockchain", "Apps de Telemedicina", "Software de simulación de energía"])
+
+        st.subheader("Habilidades Blandas")
+        situacion_equipo = st.radio(
+            "3. Imagina que tu equipo discute sobre qué método usar en un proyecto y no se ponen de acuerdo. ¿Qué harías?",
+            [
+                "A) Dejo que otros decidan para no generar conflicto.",
+                "B) Busco un consenso escuchando a todos para llegar a un acuerdo.",
+                "C) Analizo los datos de cada propuesta y presento la solución más lógica para que el equipo mejore."
+            ]
         )
-        if complejidad >= 8 and "UniExplorador" in nivel:
-            st.warning("⚠️ El nivel seleccionado es muy avanzado para un perfil Explorador. Considera ajustar tu nivel o tomar una formación básica primero.")
+        submitted_s4 = st.form_submit_button("Finalizar Diagnóstico")
 
-        # 5. Proyecto deseado
-        proyecto = st.text_area(
-            "5. Describe una idea de proyecto que te gustaría desarrollar.\n\nEjemplos:\n- UniExplorador: Crear un huerto con sensores básicos\n- UniCreador: Automatizar riego con Arduino\n- UniVisionario: Modelar una red inteligente de energía solar"
-        )
+    if submitted_s4:
+        doc_ref = db.collection("respuestas_diagnostico_unificado").document(st.session_state.firestore_doc_id)
+        doc_ref.update({
+            "seccion4_habilidades": {
+                "autoevaluacion_tech": autoevaluacion_tech,
+                "herramientas_conocidas": herramientas,
+                "respuesta_habilidad_blanda": situacion_equipo[0] # Guardamos solo la letra (A, B, o C)
+            },
+            "timestamp_final": firestore.SERVER_TIMESTAMP,
+            "estado": "Completado"
+        })
+        st.session_state.current_section = 5
+        st.success("✅ ¡Diagnóstico finalizado! Calculando tu perfil...")
+        time.sleep(2)
+        st.rerun()
 
-        enviado = st.form_submit_button("Enviar sección 3")
-
-    if enviado:
-        doc = {
-            "sector_interes": sector,
-            "nivel_experiencia": nivel,
-            "descripcion_experiencia": descripcion_exp,
-            "areas_interes": areas,
-            "complejidad_deseada": complejidad,
-            "proyecto_deseado": proyecto,
-            "timestamp": firestore.SERVER_TIMESTAMP
-        }
-        db.collection("diagnostico_seccion3").add(doc)
-        st.success("✅ ¡Gracias! Has completado la Sección 3.")
-        st.session_state.seccion_3_enviado = True
-        st.session_state.seccion_actual = 4
-        recargar_app()
-
-# --- Sección 4 placeholder ---
-def mostrar_seccion_4():
-    st.title("Sección 4: Habilidades técnicas")
-    st.write("Esta sección estará disponible próximamente.")
-
-# --- Función para mostrar sección actual ---
-def mostrar_seccion_actual():
-    if st.session_state.seccion_actual == 1:
-        mostrar_seccion_1()
-    elif st.session_state.seccion_actual == 2:
-        mostrar_seccion_2()
-    elif st.session_state.seccion_actual == 3:
-        mostrar_seccion_3()
-    elif st.session_state.seccion_actual == 4:
-        mostrar_seccion_4()
-    else:
-        st.title("¡Gracias por completar el diagnóstico!")
-        st.write("Pronto te contactaremos con tus resultados y rutas personalizadas.")
-
-# --- Mostrar la sección ---
-mostrar_seccion_actual()
-
-# --- Navegación ---
-col1, col2, col3 = st.columns([1, 6, 1])
-
-with col1:
-    if st.session_state.seccion_actual > 1:
-        if st.button("⬅️ Sección anterior"):
-            st.session_state.seccion_actual -= 1
-            recargar_app()
-
-with col3:
-    # Validar que la sección actual ya fue enviada para permitir avanzar
-    actual = st.session_state.seccion_actual
-    enviado_key = f"seccion_{actual}_enviado"
-    if st.session_state.get(enviado_key, False):
-        if actual < 5:
-            if st.button("Siguiente ➡️"):
-                st.session_state.seccion_actual += 1
-                recargar_app()
-    else:
-        st.button("Siguiente ➡️ (Completa la sección)", disabled=True)
+# --- SECCIÓN FINAL: RESULTADOS (EN CONSTRUCCIÓN) ---
+elif st.session_state.current_section == 5:
+    st.header("🎉 ¡Diagnóstico Completado! 🎉")
+    st.balloons()
+    st.markdown("¡Muchas gracias por completar tu diagnóstico! Hemos guardado tus respuestas de forma segura.")
+    st.info(f"Tu ID de registro único es: **{st.session_state.firestore_doc_id}**")
+    st.markdown("El siguiente paso será analizar tus respuestas para darte un resultado. ¡Estamos trabajando en ello!")
