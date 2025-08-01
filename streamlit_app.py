@@ -4,16 +4,10 @@ from firebase_admin import credentials, firestore
 import json 
 import time
 
-# --- INICIALIZACIÓN DE FIREBASE (LA VERSIÓN QUE SÍ FUNCIONA) ---
+# --- INICIALIZACIÓN DE FIREBASE (VERSIÓN FINAL Y ROBUSTA) ---
 def initialize_firebase():
-    """
-    Inicializa Firebase de forma segura.
-    Esta versión incluye el "organizador" (json.loads) para arreglar el error.
-    """
     try:
         creds_from_secrets = st.secrets["firebase_credentials"]
-
-        # El "Organizador": si la receta es un párrafo (string), la convierte en lista (dict)
         if isinstance(creds_from_secrets, str):
             creds_dict = json.loads(creds_from_secrets)
         else:
@@ -34,7 +28,7 @@ db = firestore.client()
 # --- CONFIGURACIÓN DE PÁGINA Y ESTADO DE SESIÓN ---
 st.set_page_config(page_title="Diagnóstico UniDigiHub", layout="centered")
 
-# st.image("logo_unidigihub.png", width=200) # Descomenta si tienes un logo
+# st.image("logo_unidigihub.png", width=200)
 
 if "current_section" not in st.session_state:
     st.session_state.current_section = 1
@@ -49,39 +43,44 @@ st.progress(st.session_state.current_section / total_sections, text=progress_tex
 st.markdown("---")
 
 
-# --- SECCIÓN 1: DATOS DEMOGRÁFICOS (CORREGIDA) ---
+# --- SECCIÓN 1: DATOS DEMOGRÁFICOS (CON VALIDACIÓN MEJORADA) ---
 if st.session_state.current_section == 1:
     st.header("Sección 1: Datos Demográficos")
     st.markdown("### 👋 ¡Bienvenida y bienvenido! \n Este autodiagnóstico tiene como propósito conocerte mejor para ayudarte a identificar tu punto de partida en el mundo digital.")
 
     with st.form("form_s1"):
-        # --- CAMPOS ACTUALIZADOS SEGÚN TU SOLICITUD ---
         paises = ["", "México (Mēxihco)", "Colombia", "Chile", "Brasil", "Argentina", "Costa Rica", "Ecuador", "El Salvador", "Perú"]
-        pais = st.selectbox("1. ¿En qué país resides?", paises)
-        departamento = st.text_input("2. Departamento o Estado donde vives")
-        comunidad = st.text_input("3. Municipio o comunidad")
-        edad = st.slider("4. ¿Cuál es tu edad?", min_value=25, max_value=90, value=25, step=1)
-        genero = st.selectbox("5. ¿Con qué género te identificas?", ["", "Femenino", "Masculino", "No binario", "Prefiero no decir", "Muxe (zapoteco)", "Otro"])
-        nivel_educativo = st.selectbox("6. ¿Cuál es tu nivel educativo más alto alcanzado?", ["", "Primaria incompleta", "Primaria completa", "Secundaria", "Técnico", "Universitario 🎓", "Posgrado"])
-        situacion_laboral = st.multiselect("7. ¿Cuál es tu situación laboral actual?", ["Agricultura de subsistencia", "Empleo informal", "Estudiante", "Desempleado", "Trabajo remoto"])
-        acceso_tecnologia = st.multiselect("8. ¿Qué acceso tecnológico tienes actualmente?", ["📱 Teléfono móvil (sin internet)", "📱💻 Teléfono con internet", "💻 Computadora/Tablet", "📶 Internet estable en casa", "❌ Ninguno"])
+        pais = st.selectbox("1. ¿En qué país resides?", paises, key="s1_pais")
+        departamento = st.text_input("2. Departamento o Estado donde vives", key="s1_depto")
+        comunidad = st.text_input("3. Municipio o comunidad", key="s1_comunidad")
+        edad = st.slider("4. ¿Cuál es tu edad?", min_value=15, max_value=90, value=25, step=1, key="s1_edad")
+        genero = st.selectbox("5. ¿Con qué género te identificas?", ["", "Femenino", "Masculino", "No binario", "Prefiero no decir", "Muxe (zapoteco)", "Otro"], key="s1_genero")
+        nivel_educativo = st.selectbox("6. ¿Cuál es tu nivel educativo más alto alcanzado?", ["", "Primaria incompleta", "Primaria completa", "Secundaria", "Técnico", "Universitario 🎓", "Posgrado"], key="s1_educacion")
+        situacion_laboral = st.multiselect("7. ¿Cuál es tu situación laboral actual?", ["Agricultura de subsistencia", "Empleo informal", "Estudiante", "Desempleado", "Trabajo remoto"], key="s1_laboral")
+        acceso_tecnologia = st.multiselect("8. ¿Qué acceso tecnológico tienes actualmente?", ["📱 Teléfono móvil (sin internet)", "📱💻 Teléfono con internet", "💻 Computadora/Tablet", "📶 Internet estable en casa", "❌ Ninguno"], key="s1_tecnologia")
         
         submitted_s1 = st.form_submit_button("Guardar y Continuar")
 
     if submitted_s1:
-        if not all([pais, departamento, comunidad, genero, nivel_educativo]):
-            st.warning("Por favor, completa todos los campos obligatorios.")
+        # --- NUEVA LÓGICA DE VALIDACIÓN ---
+        campos_obligatorios = {
+            "País": pais,
+            "Departamento o Estado": departamento,
+            "Municipio o comunidad": comunidad,
+            "Género": genero,
+            "Nivel educativo": nivel_educativo
+        }
+        campos_faltantes = [nombre for nombre, valor in campos_obligatorios.items() if not valor]
+
+        if campos_faltantes:
+            # Si la lista de campos faltantes no está vacía, muestra un error detallado.
+            st.error(f"🚨 ¡Atención! Por favor, completa los siguientes campos para continuar: **{', '.join(campos_faltantes)}**.")
         else:
-            # --- GUARDADO DE DATOS ACTUALIZADO ---
+            # Si todo está correcto, guarda los datos y avanza.
             doc_data = {
                 "seccion1_demograficos": {
-                    "pais": pais,
-                    "departamento": departamento,
-                    "comunidad": comunidad,
-                    "edad": edad,
-                    "genero": genero,
-                    "nivel_educativo": nivel_educativo,
-                    "situacion_laboral": situacion_laboral,
+                    "pais": pais, "departamento": departamento, "comunidad": comunidad, "edad": edad,
+                    "genero": genero, "nivel_educativo": nivel_educativo, "situacion_laboral": situacion_laboral,
                     "acceso_tecnologia": acceso_tecnologia,
                 },
                 "timestamp_inicio": firestore.SERVER_TIMESTAMP
@@ -90,7 +89,7 @@ if st.session_state.current_section == 1:
             st.session_state.firestore_doc_id = doc_ref.id
             st.session_state.current_section = 2
             st.success("✅ ¡Sección 1 guardada! Avanzando...")
-            time.sleep(1)
+            time.sleep(2)
             st.rerun()
 
 # --- SECCIÓN 2: PROBLEMÁTICAS LOCALES ---
@@ -158,7 +157,7 @@ elif st.session_state.current_section == 4:
             "seccion4_habilidades": {
                 "autoevaluacion_tech": autoevaluacion_tech,
                 "herramientas_conocidas": herramientas,
-                "respuesta_habilidad_blanda": situacion_equipo[0] # Guardamos solo la letra (A, B, o C)
+                "respuesta_habilidad_blanda": situacion_equipo[0] 
             },
             "timestamp_final": firestore.SERVER_TIMESTAMP,
             "estado": "Completado"
@@ -172,3 +171,6 @@ elif st.session_state.current_section == 4:
 elif st.session_state.current_section == 5:
     st.header("🎉 ¡Diagnóstico Completado! 🎉")
     st.balloons()
+    st.markdown("¡Muchas gracias por completar tu diagnóstico! Hemos guardado tus respuestas de forma segura.")
+    st.info(f"Tu ID de registro único es: **{st.session_state.firestore_doc_id}**")
+    st.markdown("El siguiente paso será analizar tus respuestas para darte un resultado. ¡Estamos trabajando en ello!")
