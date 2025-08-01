@@ -28,6 +28,8 @@ db = firestore.client()
 # --- CONFIGURACIÓN DE PÁGINA Y ESTADO DE SESIÓN ---
 st.set_page_config(page_title="Diagnóstico UniDigiHub", layout="centered")
 
+# st.image("logo_unidigihub.png", width=200)
+
 if "current_section" not in st.session_state:
     st.session_state.current_section = 1
 if "firestore_doc_id" not in st.session_state:
@@ -41,16 +43,18 @@ st.progress(st.session_state.current_section / total_sections, text=progress_tex
 st.markdown("---")
 
 
-# --- SECCIÓN 1: DATOS DEMOGRÁFICOS (MODO DETECTIVE) ---
+# --- SECCIÓN 1: DATOS DEMOGRÁFICOS (CON CORRECCIÓN FINAL) ---
 if st.session_state.current_section == 1:
     st.header("Sección 1: Datos Demográficos")
+    st.markdown("### 👋 ¡Bienvenida y bienvenido! \n Este autodiagnóstico tiene como propósito conocerte mejor para ayudarte a identificar tu punto de partida en el mundo digital.")
 
     with st.form("form_s1"):
+        # Se utilizan `key` para guardar los valores en el estado de la sesión
         paises = ["", "México (Mēxihco)", "Colombia", "Chile", "Brasil", "Argentina", "Costa Rica", "Ecuador", "El Salvador", "Perú"]
         st.selectbox("1. ¿En qué país resides?", paises, key="s1_pais")
         st.text_input("2. Departamento o Estado donde vives", key="s1_depto")
         st.text_input("3. Municipio o comunidad", key="s1_comunidad")
-        st.slider("4. ¿Cuál es tu edad?", min_value=15, max_value=90, value=25, step=1, key="s1_edad")
+        st.slider("4. ¿Cuál es tu edad?", min_value=25, max_value=90, value=25, step=1, key="s1_edad")
         st.selectbox("5. ¿Con qué género te identificas?", ["", "Femenino", "Masculino", "No binario", "Prefiero no decir", "Muxe (zapoteco)", "Otro"], key="s1_genero")
         st.selectbox("6. ¿Cuál es tu nivel educativo más alto alcanzado?", ["", "Primaria incompleta", "Primaria completa", "Secundaria", "Técnico", "Universitario 🎓", "Posgrado"], key="s1_educacion")
         st.multiselect("7. ¿Cuál es tu situación laboral actual?", ["Agricultura de subsistencia", "Empleo informal", "Estudiante", "Desempleado", "Trabajo remoto"], key="s1_laboral")
@@ -59,49 +63,40 @@ if st.session_state.current_section == 1:
         submitted_s1 = st.form_submit_button("Guardar y Continuar")
 
     if submitted_s1:
-        # --- MODO DETECTIVE ACTIVADO ---
-        st.info("PASO 1: Botón presionado. Iniciando el proceso de guardado.")
-        
-        try:
-            st.info("PASO 2: Leyendo los valores del formulario desde la sesión...")
-            # Leemos todos los valores
-            s1_data = {
-                "pais": st.session_state.s1_pais, "departamento": st.session_state.s1_depto,
-                "comunidad": st.session_state.s1_comunidad, "edad": st.session_state.s1_edad,
-                "genero": st.session_state.s1_genero, "nivel_educativo": st.session_state.s1_educacion,
-                "situacion_laboral": st.session_state.s1_laboral, "acceso_tecnologia": st.session_state.s1_tecnologia
+        # --- LÓGICA DE VALIDACIÓN CORREGIDA ---
+        # Leemos los valores directamente del estado de la sesión para evitar errores
+        campos_obligatorios = {
+            "País": st.session_state.s1_pais,
+            "Departamento o Estado": st.session_state.s1_depto,
+            "Municipio o comunidad": st.session_state.s1_comunidad,
+            "Género": st.session_state.s1_genero,
+            "Nivel educativo": st.session_state.s1_educacion
+        }
+        campos_faltantes = [nombre for nombre, valor in campos_obligatorios.items() if not valor]
+
+        if campos_faltantes:
+            st.error(f"🚨 ¡Atención! Por favor, completa los siguientes campos para continuar: **{', '.join(campos_faltantes)}**.")
+        else:
+            # Si todo está correcto, guarda los datos y avanza.
+            doc_data = {
+                "seccion1_demograficos": {
+                    "pais": st.session_state.s1_pais,
+                    "departamento": st.session_state.s1_depto,
+                    "comunidad": st.session_state.s1_comunidad,
+                    "edad": st.session_state.s1_edad,
+                    "genero": st.session_state.s1_genero,
+                    "nivel_educativo": st.session_state.s1_educacion,
+                    "situacion_laboral": st.session_state.s1_laboral,
+                    "acceso_tecnologia": st.session_state.s1_tecnologia,
+                },
+                "timestamp_inicio": firestore.SERVER_TIMESTAMP
             }
-            st.write("Valores leídos:", s1_data)
-
-            st.info("PASO 3: Verificando que los campos obligatorios no estén vacíos...")
-            campos_obligatorios = {
-                "País": s1_data["pais"], "Departamento o Estado": s1_data["departamento"],
-                "Municipio o comunidad": s1_data["comunidad"], "Género": s1_data["genero"],
-                "Nivel educativo": s1_data["nivel_educativo"]
-            }
-            campos_faltantes = [nombre for nombre, valor in campos_obligatorios.items() if not valor]
-            
-            if campos_faltantes:
-                st.error(f"ERROR EN PASO 3: Se detectaron campos vacíos: **{', '.join(campos_faltantes)}**.")
-            else:
-                st.success("ÉXITO EN PASO 3: Todos los campos obligatorios están llenos.")
-                st.info("PASO 4: Intentando guardar los datos en la base de datos (Firestore)...")
-                
-                doc_data = {
-                    "seccion1_demograficos": s1_data,
-                    "timestamp_inicio": firestore.SERVER_TIMESTAMP
-                }
-                _, doc_ref = db.collection("respuestas_diagnostico_unificado").add(doc_data)
-                st.session_state.firestore_doc_id = doc_ref.id
-                st.session_state.current_section = 2
-                
-                st.success("ÉXITO EN PASO 4: ¡Datos guardados! Avanzando a la siguiente sección...")
-                time.sleep(3)
-                st.rerun()
-
-        except Exception as e:
-            st.error(f"ERROR INESPERADO: El programa se detuvo por completo. Error: {e}")
-
+            _, doc_ref = db.collection("respuestas_diagnostico_unificado").add(doc_data)
+            st.session_state.firestore_doc_id = doc_ref.id
+            st.session_state.current_section = 2
+            st.success("✅ ¡Sección 1 guardada! Avanzando...")
+            time.sleep(2)
+            st.rerun()
 
 # --- (El resto del código para las Secciones 2, 3, 4 y 5 sigue igual) ---
 # --- SECCIÓN 2: PROBLEMÁTICAS LOCALES ---
