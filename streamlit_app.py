@@ -1,7 +1,7 @@
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
-import json # Necesitamos este "traductor"
+import json 
 import time
 
 # --- INICIALIZACIÓN DE FIREBASE (LA VERSIÓN QUE SÍ FUNCIONA) ---
@@ -49,25 +49,41 @@ st.progress(st.session_state.current_section / total_sections, text=progress_tex
 st.markdown("---")
 
 
-# --- SECCIÓN 1: DATOS DEMOGRÁFICOS ---
+# --- SECCIÓN 1: DATOS DEMOGRÁFICOS (CORREGIDA) ---
 if st.session_state.current_section == 1:
     st.header("Sección 1: Datos Demográficos")
-    st.markdown("### 👋 ¡Bienvenida y bienvenido! \n Este diagnóstico nos ayudará a conocerte para personalizar tu ruta de aprendizaje.")
+    st.markdown("### 👋 ¡Bienvenida y bienvenido! \n Este autodiagnóstico tiene como propósito conocerte mejor para ayudarte a identificar tu punto de partida en el mundo digital.")
 
     with st.form("form_s1"):
-        pais = st.selectbox("1. ¿En qué país resides?", ["", "México", "Colombia", "Chile", "Brasil", "Argentina", "Costa Rica", "Ecuador", "El Salvador", "Perú"])
+        # --- CAMPOS ACTUALIZADOS SEGÚN TU SOLICITUD ---
+        paises = ["", "México (Mēxihco)", "Colombia", "Chile", "Brasil", "Argentina", "Costa Rica", "Ecuador", "El Salvador", "Perú"]
+        pais = st.selectbox("1. ¿En qué país resides?", paises)
         departamento = st.text_input("2. Departamento o Estado donde vives")
-        edad = st.slider("3. ¿Cuál es tu edad?", 25, 90, 25)
-        genero = st.selectbox("4. ¿Con qué género te identificas?", ["", "Femenino", "Masculino", "No binario", "Prefiero no decir", "Muxe (zapoteco)", "Otro"])
+        comunidad = st.text_input("3. Municipio o comunidad")
+        edad = st.slider("4. ¿Cuál es tu edad?", min_value=25, max_value=90, value=25, step=1)
+        genero = st.selectbox("5. ¿Con qué género te identificas?", ["", "Femenino", "Masculino", "No binario", "Prefiero no decir", "Muxe (zapoteco)", "Otro"])
+        nivel_educativo = st.selectbox("6. ¿Cuál es tu nivel educativo más alto alcanzado?", ["", "Primaria incompleta", "Primaria completa", "Secundaria", "Técnico", "Universitario 🎓", "Posgrado"])
+        situacion_laboral = st.multiselect("7. ¿Cuál es tu situación laboral actual?", ["Agricultura de subsistencia", "Empleo informal", "Estudiante", "Desempleado", "Trabajo remoto"])
+        acceso_tecnologia = st.multiselect("8. ¿Qué acceso tecnológico tienes actualmente?", ["📱 Teléfono móvil (sin internet)", "📱💻 Teléfono con internet", "💻 Computadora/Tablet", "📶 Internet estable en casa", "❌ Ninguno"])
         
         submitted_s1 = st.form_submit_button("Guardar y Continuar")
 
     if submitted_s1:
-        if not all([pais, departamento, genero]):
+        if not all([pais, departamento, comunidad, genero, nivel_educativo]):
             st.warning("Por favor, completa todos los campos obligatorios.")
         else:
+            # --- GUARDADO DE DATOS ACTUALIZADO ---
             doc_data = {
-                "seccion1_demograficos": { "pais": pais, "departamento": departamento, "edad": edad, "genero": genero, },
+                "seccion1_demograficos": {
+                    "pais": pais,
+                    "departamento": departamento,
+                    "comunidad": comunidad,
+                    "edad": edad,
+                    "genero": genero,
+                    "nivel_educativo": nivel_educativo,
+                    "situacion_laboral": situacion_laboral,
+                    "acceso_tecnologia": acceso_tecnologia,
+                },
                 "timestamp_inicio": firestore.SERVER_TIMESTAMP
             }
             _, doc_ref = db.collection("respuestas_diagnostico_unificado").add(doc_data)
@@ -156,6 +172,3 @@ elif st.session_state.current_section == 4:
 elif st.session_state.current_section == 5:
     st.header("🎉 ¡Diagnóstico Completado! 🎉")
     st.balloons()
-    st.markdown("¡Muchas gracias por completar tu diagnóstico! Hemos guardado tus respuestas de forma segura.")
-    st.info(f"Tu ID de registro único es: **{st.session_state.firestore_doc_id}**")
-    st.markdown("El siguiente paso será analizar tus respuestas para darte un resultado. ¡Estamos trabajando en ello!")
