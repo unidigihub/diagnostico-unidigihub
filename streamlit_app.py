@@ -67,7 +67,7 @@ if st.session_state.current_section == 1:
         st.selectbox("1. ¿En qué país resides?", paises, key="s1_pais")
         st.text_input("2. Departamento o Estado donde vives", key="s1_depto")
         st.text_input("3. Municipio o comunidad", key="s1_comunidad")
-        st.slider("4. ¿Cuál es tu edad?", min_value=15, max_value=90, value=25, step=1, key="s1_edad") # Corregido a min_value=15
+        st.slider("4. ¿Cuál es tu edad?", min_value=25, max_value=90, value=25, step=1, key="s1_edad") # Corregido a min_value=15
         st.selectbox("5. ¿Con qué género te identificas?", ["", "Femenino", "Masculino", "No binario", "Prefiero no decir", "Muxe (zapoteco)", "Otro"], key="s1_genero")
         st.selectbox("6. ¿Cuál es tu nivel educativo más alto alcanzado?", ["", "Primaria incompleta", "Primaria completa", "Secundaria", "Técnico", "Universitario 🎓", "Posgrado"], key="s1_educacion")
         st.multiselect("7. ¿Cuál es tu situación laboral actual?", ["Agricultura de subsistencia", "Empleo informal", "Estudiante", "Desempleado", "Trabajo remoto"], key="s1_laboral")
