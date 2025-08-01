@@ -46,7 +46,7 @@ st.markdown("---")
 # --- SECCIÓN 1: DATOS DEMOGRÁFICOS (CON CORRECCIÓN FINAL) ---
 if st.session_state.current_section == 1:
     st.header("Sección 1: Datos Demográficos")
-    st.markdown("### 👋 ¡Bienvenida y bienvenido! \n Este diagnóstico nos ayudará a conocerte para personalizar tu ruta de aprendizaje.")
+    st.markdown("### 👋 ¡Bienvenida y bienvenido! \n Este autodiagnóstico tiene como propósito conocerte mejor para ayudarte a identificar tu punto de partida en el mundo digital.")
 
     with st.form("form_s1"):
         # Se utilizan `key` para guardar los valores en el estado de la sesión
@@ -54,7 +54,7 @@ if st.session_state.current_section == 1:
         st.selectbox("1. ¿En qué país resides?", paises, key="s1_pais")
         st.text_input("2. Departamento o Estado donde vives", key="s1_depto")
         st.text_input("3. Municipio o comunidad", key="s1_comunidad")
-        st.slider("4. ¿Cuál es tu edad?", min_value=15, max_value=90, value=25, step=1, key="s1_edad")
+        st.slider("4. ¿Cuál es tu edad?", min_value=25, max_value=90, value=25, step=1, key="s1_edad")
         st.selectbox("5. ¿Con qué género te identificas?", ["", "Femenino", "Masculino", "No binario", "Prefiero no decir", "Muxe (zapoteco)", "Otro"], key="s1_genero")
         st.selectbox("6. ¿Cuál es tu nivel educativo más alto alcanzado?", ["", "Primaria incompleta", "Primaria completa", "Secundaria", "Técnico", "Universitario 🎓", "Posgrado"], key="s1_educacion")
         st.multiselect("7. ¿Cuál es tu situación laboral actual?", ["Agricultura de subsistencia", "Empleo informal", "Estudiante", "Desempleado", "Trabajo remoto"], key="s1_laboral")
