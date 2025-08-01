@@ -46,7 +46,11 @@ st.markdown("---")
 # --- SECCIÓN 1: DATOS DEMOGRÁFICOS (CON CORRECCIÓN FINAL) ---
 if st.session_state.current_section == 1:
     st.header("Sección 1: Datos Demográficos")
-    st.markdown("### 👋 ¡Bienvenida y bienvenido! \n Este autodiagnóstico tiene como propósito conocerte mejor para ayudarte a identificar tu punto de partida en el mundo digital.")
+    st.markdown("### 👋 ¡Bienvenida y bienvenido! \n Este autodiagnóstico tiene como propósito conocerte mejor para ayudarte a identificar tu punto de partida en el mundo digital. A través de 7 secciones breves, exploraremos tus intereses, habilidades y contexto local para recomendarte una ruta de aprendizaje personalizada dentro de UniDigiHub.
+
+    💡 **Tu participación nos permitirá diseñar experiencias formativas más inclusivas, útiles y adaptadas a tu realidad.**
+
+    No se requiere experiencia previa. Solo responde con sinceridad 😊")
 
     with st.form("form_s1"):
         # Se utilizan `key` para guardar los valores en el estado de la sesión
