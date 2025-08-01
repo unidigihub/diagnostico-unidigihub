@@ -33,7 +33,7 @@ def mostrar_seccion_1():
         pais = st.selectbox("1. ¿En qué país resides?", paises)
         departamento = st.text_input("2. Departamento o Estado donde vives")
         comunidad = st.text_input("3. Municipio o comunidad")
-        edad = st.slider("4. ¿Cuál es tu edad?", min_value=15, max_value=90, step=1)
+        edad = st.slider("4. ¿Cuál es tu edad?", min_value=25, max_value=90, step=1)
         genero = st.selectbox(
             "5. ¿Con qué género te identificas?",
             ["Femenino", "Masculino", "No binario", "Prefiero no decir", "Muxe (zapoteco)", "Otro"]
@@ -150,12 +150,63 @@ def mostrar_seccion_2():
         # Puedes aquí decidir si avanzas a la siguiente sección o dejas que el usuario decida
         # Por ejemplo:
         # st.session_state.seccion_actual = 3
+        # Cambiar a la siguiente sección
+        st.session_state.seccion_actual = 2
+
+# Función para mostrar Sección 3
+def mostrar_seccion_3():
+    st.title("Sección 3: Intereses profesionales")
+    st.write("Queremos conocerte mejor para ayudarte a elegir un camino de aprendizaje adecuado.")
+
+    with st.form("form_seccion3"):
+        intereses = st.multiselect(
+            "1. ¿Qué temas te interesan aprender o mejorar?",
+            options=[
+                "Transformación digital en mi comunidad",
+                "Uso de tecnología para vender más",
+                "Cuidado de la salud con tecnología",
+                "Mejorar mi producción agrícola",
+                "Energía limpia y sustentabilidad",
+                "Finanzas personales y ahorro digital",
+                "Desarrollo de aplicaciones o sitios web",
+                "Otro"
+            ]
+        )
+        motivaciones = st.text_area(
+            "2. ¿Por qué te interesa aprender sobre estos temas?",
+            placeholder="Ejemplo: mejorar mi negocio, conseguir empleo, ayudar a mi comunidad..."
+        )
+        tiempo_dedicacion = st.selectbox(
+            "3. ¿Cuántas horas por semana podrías dedicar al aprendizaje digital?",
+            ["1-2 horas", "3-5 horas", "6-10 horas", "Más de 10 horas"]
+        )
+        experiencia_digital = st.radio(
+            "4. ¿Te consideras principiante o tienes experiencia previa usando herramientas digitales?",
+            ["Principiante", "Algo de experiencia", "Avanzado"]
+        )
+
+        enviado = st.form_submit_button("Enviar sección 3")
+
+    if enviado:
+        doc = {
+            "intereses": intereses,
+            "motivaciones": motivaciones,
+            "tiempo_dedicacion": tiempo_dedicacion,
+            "experiencia_digital": experiencia_digital,
+            "timestamp": firestore.SERVER_TIMESTAMP
+        }
+        db.collection("diagnostico_seccion3").add(doc)
+        st.success("✅ ¡Gracias! Sección 3 enviada correctamente.")
+        st.session_state.seccion_actual = 4
 
 # Mostrar sección según variable de estado
 if st.session_state.seccion_actual == 1:
     mostrar_seccion_1()
 elif st.session_state.seccion_actual == 2:
     mostrar_seccion_2()
+elif st.session_state.seccion_actual == 3:
+    mostrar_seccion_3()
+
 
 # Botones para navegar entre secciones manualmente (opcional)
 col1, col2, col3 = st.columns([1,6,1])
