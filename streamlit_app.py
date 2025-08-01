@@ -10,25 +10,14 @@ if not firebase_admin._apps:
     })
 db = firestore.client()
 
-# --- Configuración de página ---
 st.set_page_config(page_title="Diagnóstico UniDigiHub", layout="centered")
 st.image("logo_unidigihub.png", width=200)
 
-# --- Inicializar variables de control ---
+# Inicializar variable para control de secciones
 if "seccion_actual" not in st.session_state:
     st.session_state.seccion_actual = 1
 
-# Variables para controlar envío de cada sección
-for i in range(1, 5):
-    key = f"seccion_{i}_enviado"
-    if key not in st.session_state:
-        st.session_state[key] = False
-
-# Función para forzar recarga limpia sin usar st.experimental_rerun (evita errores)
-def recargar_app():
-    st.session_state["recarga"] = not st.session_state.get("recarga", False)
-
-# --- Sección 1 ---
+# Función para mostrar Sección 1
 def mostrar_seccion_1():
     st.title("Sección 1: Datos demográficos")
     st.markdown("""
@@ -44,7 +33,7 @@ def mostrar_seccion_1():
         pais = st.selectbox("1. ¿En qué país resides?", paises)
         departamento = st.text_input("2. Departamento o Estado donde vives")
         comunidad = st.text_input("3. Municipio o comunidad")
-        edad = st.slider("4. ¿Cuál es tu edad?", min_value=25, max_value=90, step=1)
+        edad = st.slider("4. ¿Cuál es tu edad?", min_value=15, max_value=90, step=1)
         genero = st.selectbox(
             "5. ¿Con qué género te identificas?",
             ["Femenino", "Masculino", "No binario", "Prefiero no decir", "Muxe (zapoteco)", "Otro"]
@@ -88,14 +77,14 @@ def mostrar_seccion_1():
             "acceso_tecnologia": acceso_tecnologia,
             "timestamp": firestore.SERVER_TIMESTAMP
         }
+
         db.collection("diagnostico_seccion1").add(doc)
 
         st.success("✅ ¡Gracias! Sección 1 enviada correctamente.")
-        st.session_state.seccion_1_enviado = True
+        # Cambiar a la siguiente sección
         st.session_state.seccion_actual = 2
-        recargar_app()
 
-# --- Sección 2 ---
+# Función para mostrar Sección 2
 def mostrar_seccion_2():
     st.title("Sección 2: Problemáticas locales")
     st.write("Por favor, responde estas preguntas sobre los desafíos que enfrenta tu comunidad.")
@@ -158,122 +147,25 @@ def mostrar_seccion_2():
         }
         db.collection("diagnostico_seccion2").add(doc)
         st.success("✅ ¡Gracias! Sección 2 enviada correctamente.")
-        st.session_state.seccion_2_enviado = True
-        st.session_state.seccion_actual = 3
-        recargar_app()
+        # Puedes aquí decidir si avanzas a la siguiente sección o dejas que el usuario decida
+        # Por ejemplo:
+        # st.session_state.seccion_actual = 3
 
-# --- Sección 3 ---
-def mostrar_seccion_3():
-    st.title("Sección 3: Intereses profesionales")
-    st.write("Queremos conocerte mejor para ayudarte a diseñar una ruta de aprendizaje personalizada.")
+# Mostrar sección según variable de estado
+if st.session_state.seccion_actual == 1:
+    mostrar_seccion_1()
+elif st.session_state.seccion_actual == 2:
+    mostrar_seccion_2()
 
-    with st.form("form_seccion3"):
-        # 1. Sector de interés
-        sector = st.selectbox(
-            "1. ¿Cuál es el sector que más te interesa?",
-            ["🌱 AgriTech", "💰 FinTech", "🏥 HealthTech", "🌞 Energías Renovables"]
-        )
-
-        # 2. Experiencia previa
-        nivel = st.radio(
-            "2. ¿Qué nivel de experiencia tienes?",
-            ["🔍 UniExplorador (Ninguna/baja experiencia)", 
-             "🛠️ UniCreador (Experiencia básica en proyectos)", 
-             "🚀 UniVisionario (Experiencia avanzada con resultados)"]
-        )
-        descripcion_exp = st.text_area("Describe tu experiencia (Ejemplo: curso básico de IoT):")
-
-        # 3. Áreas de interés (depende del nivel)
-        st.write("3. Selecciona tus áreas de interés:")
-        if "UniExplorador" in nivel:
-            areas = st.multiselect(
-                "Opciones para UniExplorador",
-                ["Introducción a IoT", "Conceptos básicos de blockchain"]
-            )
-        elif "UniCreador" in nivel:
-            areas = st.multiselect(
-                "Opciones para UniCreador",
-                ["Diseño de apps AgriTech", "Análisis de datos en salud"]
-            )
-        elif "UniVisionario" in nivel:
-            areas = st.multiselect(
-                "Opciones para UniVisionario",
-                ["Optimización de redes neuronales", "Sistemas autónomos de energía"]
-            )
-        else:
-            areas = []
-
-        # 4. Complejidad deseada
-        complejidad = st.slider(
-            "4. ¿Qué nivel de profundidad deseas alcanzar?",
-            0, 10, 3,
-            help="0 = Básico (Ej: Aprender a usar sensores), 10 = Avanzado (Ej: Desarrollar un MVP escalable)"
-        )
-        if complejidad >= 8 and "UniExplorador" in nivel:
-            st.warning("⚠️ El nivel seleccionado es muy avanzado para un perfil Explorador. Considera ajustar tu nivel o tomar una formación básica primero.")
-
-        # 5. Proyecto deseado
-        proyecto = st.text_area(
-            "5. Describe una idea de proyecto que te gustaría desarrollar.\n\nEjemplos:\n- UniExplorador: Crear un huerto con sensores básicos\n- UniCreador: Automatizar riego con Arduino\n- UniVisionario: Modelar una red inteligente de energía solar"
-        )
-
-        enviado = st.form_submit_button("Enviar sección 3")
-
-    if enviado:
-        doc = {
-            "sector_interes": sector,
-            "nivel_experiencia": nivel,
-            "descripcion_experiencia": descripcion_exp,
-            "areas_interes": areas,
-            "complejidad_deseada": complejidad,
-            "proyecto_deseado": proyecto,
-            "timestamp": firestore.SERVER_TIMESTAMP
-        }
-        db.collection("diagnostico_seccion3").add(doc)
-        st.success("✅ ¡Gracias! Has completado la Sección 3.")
-        st.session_state.seccion_3_enviado = True
-        st.session_state.seccion_actual = 4
-        recargar_app()
-
-# --- Sección 4 placeholder ---
-def mostrar_seccion_4():
-    st.title("Sección 4: Habilidades técnicas")
-    st.write("Esta sección estará disponible próximamente.")
-
-# --- Función para mostrar sección actual ---
-def mostrar_seccion_actual():
-    if st.session_state.seccion_actual == 1:
-        mostrar_seccion_1()
-    elif st.session_state.seccion_actual == 2:
-        mostrar_seccion_2()
-    elif st.session_state.seccion_actual == 3:
-        mostrar_seccion_3()
-    elif st.session_state.seccion_actual == 4:
-        mostrar_seccion_4()
-    else:
-        st.title("¡Gracias por completar el diagnóstico!")
-        st.write("Pronto te contactaremos con tus resultados y rutas personalizadas.")
-
-# --- Mostrar la sección ---
-mostrar_seccion_actual()
-
-# --- Navegación ---
-col1, col2, col3 = st.columns([1, 6, 1])
+# Botones para navegar entre secciones manualmente (opcional)
+col1, col2, col3 = st.columns([1,6,1])
 
 with col1:
     if st.session_state.seccion_actual > 1:
         if st.button("⬅️ Sección anterior"):
             st.session_state.seccion_actual -= 1
-            recargar_app()
 
 with col3:
-    # Validar que la sección actual ya fue enviada para permitir avanzar
-    actual = st.session_state.seccion_actual
-    enviado_key = f"seccion_{actual}_enviado"
-    if st.session_state.get(enviado_key, False):
-        if actual < 5:
-            if st.button("Siguiente ➡️"):
-                st.session_state.seccion_actual += 1
-                recargar_app()
-    else:
-        st.button("Siguiente ➡️ (Completa la sección)", disabled=True)
+    if st.session_state.seccion_actual < 7:
+        if st.button("Siguiente ➡️"):
+            st.session_state.seccion_actual += 1
