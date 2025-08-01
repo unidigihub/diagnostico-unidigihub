@@ -1,18 +1,31 @@
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
+import json # Necesitamos este "traductor"
 import time
 
-# --- INICIALIZACIÓN SEGURA DE FIREBASE PARA STREAMLIT CLOUD ---
+# --- INICIALIZACIÓN DE FIREBASE (LA VERSIÓN QUE SÍ FUNCIONA) ---
 def initialize_firebase():
+    """
+    Inicializa Firebase de forma segura.
+    Esta versión incluye el "organizador" (json.loads) para arreglar el error.
+    """
     try:
-        creds_dict = st.secrets["firebase_credentials"]
+        creds_from_secrets = st.secrets["firebase_credentials"]
+
+        # El "Organizador": si la receta es un párrafo (string), la convierte en lista (dict)
+        if isinstance(creds_from_secrets, str):
+            creds_dict = json.loads(creds_from_secrets)
+        else:
+            creds_dict = dict(creds_from_secrets)
+        
         cred = credentials.Certificate(creds_dict)
+        
         if not firebase_admin._apps:
             firebase_admin.initialize_app(cred)
+            
     except Exception as e:
-        st.error(f"Error al inicializar Firebase: {e}")
-        st.error("Asegúrate de haber configurado correctamente el 'Secret' de [firebase_credentials] en tu app de Streamlit Cloud.")
+        st.error(f"Error al conectar con la base de datos: {e}")
         st.stop()
 
 initialize_firebase()
