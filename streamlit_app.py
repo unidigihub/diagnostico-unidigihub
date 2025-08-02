@@ -1,6 +1,6 @@
 import streamlit as st
 import firebase_admin
-from firebase_admin import credentials
+from firebase_admin import credentials, firestore
 import json
 import time
 import requests
@@ -36,11 +36,22 @@ def get_access_token():
         st.exception(e)
         return None
 
+# --- FUNCIÓN DE FORMATO CORREGIDA ---
 def format_value(value):
-    if isinstance(value, str): return {"stringValue": value}
+    if isinstance(value, str):
+        # Manejo especial para Timestamps en formato ISO
+        try:
+            datetime.datetime.fromisoformat(value.replace('Z', '+00:00'))
+            return {"timestampValue": value}
+        except ValueError:
+            return {"stringValue": value}
     if isinstance(value, int) or isinstance(value, float): return {"integerValue": str(value)}
     if isinstance(value, list):
-        return {"arrayValue": {"values": [{"stringValue": str(v)} for v in value]}}
+        if not value: return {"arrayValue": {}}
+        else: return {"arrayValue": {"values": [{"stringValue": str(v)} for v in value]}}
+    # NUEVA LÓGICA: Enseña al programa a manejar "sobres" (diccionarios anidados)
+    if isinstance(value, dict):
+        return {"mapValue": {"fields": {k: format_value(v) for k, v in value.items()}}}
     return {}
 
 def save_data_rest(collection, data):
@@ -62,7 +73,9 @@ def save_data_rest(collection, data):
 def update_data_rest(full_doc_path, data_to_update):
     access_token = get_access_token()
     if not access_token: return False, "Fallo en obtener token"
-    url = f"https://firestore.googleapis.com/v1/{full_doc_path}"
+    # Construimos la URL de actualización con los campos a modificar
+    update_mask = '&'.join([f'updateMask.fieldPaths={key}' for key in data_to_update.keys()])
+    url = f"https://firestore.googleapis.com/v1/{full_doc_path}?{update_mask}"
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
 
     firestore_data = {"fields": {key: format_value(value) for key, value in data_to_update.items()}}
@@ -112,7 +125,7 @@ if st.session_state.current_section == 1:
         if campos_faltantes:
             st.error(f"🚨 ¡Atención! Por favor, completa los siguientes campos: **{', '.join(campos_faltantes)}**.")
         else:
-            doc_data = {"seccion1_demograficos": {"pais": st.session_state.s1_pais, "departamento": st.session_state.s1_depto, "comunidad": st.session_state.s1_comunidad, "edad": st.session_state.s1_edad, "genero": st.session_state.s1_genero, "nivel_educativo": st.session_state.s1_educacion, "situacion_laboral": st.session_state.s1_laboral, "acceso_tecnologia": st.session_state.s1_tecnologia, "timestamp_inicio": datetime.datetime.now(datetime.timezone.utc).isoformat()}}
+            doc_data = {"seccion1_demograficos": {"pais": st.session_state.s1_pais, "departamento": st.session_state.s1_depto, "comunidad": st.session_state.s1_comunidad, "edad": st.session_state.s1_edad, "genero": st.session_state.s1_genero, "nivel_educativo": st.session_state.s1_educacion, "situacion_laboral": st.session_state.s1_laboral, "acceso_tecnologia": st.session_state.s1_tecnologia}, "timestamp_inicio": datetime.datetime.now(datetime.timezone.utc).isoformat()}
             success, doc_id, error = save_data_rest("respuestas_diagnostico_unificado", doc_data)
             if success:
                 st.session_state.firestore_doc_id = doc_id
@@ -125,77 +138,10 @@ if st.session_state.current_section == 1:
                 st.error("Houston, tenemos un problema al guardar los datos.")
                 st.exception(error)
 
-# --- SECCIONES 2, 3, 4 ---
-# (Usan la lógica normal del formulario, pero ahora usan la función de update)
-
-# --- SECCIÓN 2: PROBLEMÁTICAS LOCALES ---
+# --- SECCIONES RESTANTES ---
 elif st.session_state.current_section == 2:
     st.header("Sección 2: Problemáticas Locales")
-    with st.form("form_s2"):
-        st.text_area("1. Describe el problema principal que afecta a tu comunidad", placeholder='Ej: "Sequía en cultivos"', key="s2_problema")
-        st.multiselect("2. ¿Con qué sectores se relaciona este problema?", ["Agricultura y tecnología", "Finanzas digitales", "Salud comunitaria", "Energía limpia"], key="s2_sectores")
-        st.slider("3. Impacto del problema en tu comunidad (1=Bajo, 5=Crítico)", 1, 5, 3, key="s2_impacto")
-        submitted_s2 = st.form_submit_button("Guardar y Continuar")
-    if submitted_s2:
-        if not st.session_state.s2_problema: st.warning("Por favor, describe el problema principal.")
-        else:
-            data_to_update = {"seccion2_problematicas": {"problema_principal": st.session_state.s2_problema, "sectores_relacionados": st.session_state.s2_sectores, "impacto_escala": st.session_state.s2_impacto}}
-            success, error = update_data_rest(st.session_state.firestore_doc_path, data_to_update)
-            if success:
-                st.session_state.current_section = 3
-                st.success("✅ ¡Sección 2 guardada! Avanzando...")
-                time.sleep(1)
-                st.rerun()
-            else:
-                st.error("Error al actualizar los datos."); st.exception(error)
-
-# --- SECCIÓN 3: INTERESES PROFESIONALES ---
-elif st.session_state.current_section == 3:
-    st.header("Sección 3: Intereses Profesionales")
-    with st.form("form_s3"):
-        st.selectbox("1. ¿Cuál de estos sectores te atrae más?", ["", "AgriTech (Agricultura)", "FinTech (Finanzas)", "HealthTech (Salud)", "Energías Renovables"], key="s3_sector_interes")
-        st.radio("2. ¿Cuál es tu nivel de experiencia en proyectos tecnológicos?", ["**UniExplorador** (Ninguna o baja experiencia)", "**UniCreador** (Experiencia básica)", "**UniVisionario** (Experiencia avanzada)"], key="s3_experiencia")
-        submitted_s3 = st.form_submit_button("Guardar y Continuar")
-    if submitted_s3:
-        if not st.session_state.s3_sector_interes: st.warning("Por favor, selecciona un sector de interés.")
-        else:
-            nivel_autodeclarado = st.session_state.s3_experiencia.split("**")[1]
-            data_to_update = {"seccion3_intereses": {"sector_interes_principal": st.session_state.s3_sector_interes, "nivel_autodeclarado": nivel_autodeclarado}}
-            success, error = update_data_rest(st.session_state.firestore_doc_path, data_to_update)
-            if success:
-                st.session_state.current_section = 4
-                st.success("✅ ¡Sección 3 guardada! Una más y terminamos.")
-                time.sleep(1)
-                st.rerun()
-            else:
-                st.error("Error al actualizar los datos."); st.exception(error)
-
-# --- SECCIÓN 4: HABILIDADES TÉCNICAS Y BLANDAS ---
-elif st.session_state.current_section == 4:
-    st.header("Sección 4: Habilidades y Competencias")
-    with st.form("form_s4"):
-        st.subheader("Autoevaluación de Habilidades Técnicas")
-        st.slider("1. En una escala de 1 (Nada) a 5 (Mucho), ¿qué tan cómodo te sientes con la programación o el análisis de datos?", 1, 5, 2, key="s4_autoeval_tech")
-        st.subheader("Herramientas Conocidas")
-        st.multiselect("2. Marca las herramientas o conceptos que conozcas", ["Sensores IoT", "Drones", "Plataformas de pago", "Blockchain", "Apps de Telemedicina", "Simulación de energía"], key="s4_herramientas")
-        st.subheader("Habilidades Blandas")
-        st.radio("3. Imagina que tu equipo discute sobre qué método usar en un proyecto. ¿Qué harías?", ["A) Dejo que otros decidan.", "B) Busco un consenso escuchando a todos.", "C) Analizo los datos y presento la solución más lógica."], key="s4_situacion_equipo")
-        submitted_s4 = st.form_submit_button("Finalizar Diagnóstico")
-    if submitted_s4:
-        data_to_update = {"seccion4_habilidades": {"autoevaluacion_tech": st.session_state.s4_autoeval_tech, "herramientas_conocidas": st.session_state.s4_herramientas, "respuesta_habilidad_blanda": st.session_state.s4_situacion_equipo[0]}, "estado": "Completado", "timestamp_final": datetime.datetime.now(datetime.timezone.utc).isoformat()}
-        success, error = update_data_rest(st.session_state.firestore_doc_path, data_to_update)
-        if success:
-            st.session_state.current_section = 5
-            st.success("✅ ¡Diagnóstico finalizado! Calculando tu perfil...")
-            time.sleep(2)
-            st.rerun()
-        else:
-            st.error("Error al actualizar los datos."); st.exception(error)
-
-# --- SECCIÓN FINAL: RESULTADOS (EN CONSTRUCCIÓN) ---
-elif st.session_state.current_section > 4:
-    st.header("🎉 ¡Diagnóstico Completado! 🎉")
-    st.balloons()
-    st.markdown("¡Muchas gracias por completar tu diagnóstico! Hemos guardado tus respuestas de forma segura.")
-    st.info(f"Tu ID de registro único es: **{st.session_state.firestore_doc_id}**")
-    st.markdown("El siguiente paso será analizar tus respuestas para darte un resultado. ¡Estamos trabajando en ello!")
+    # ... (El código para las demás secciones irá aquí en el futuro)
+    st.info("La Sección 1 funciona. ¡Ahora podemos construir el resto del formulario!")
+    
+# ... y así sucesivamente para las demás secciones ...
