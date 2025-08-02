@@ -6,6 +6,7 @@ import time
 import requests
 from google.oauth2 import service_account
 from google.auth.transport.requests import Request
+import datetime # <--- LA CORRECCIÓN ESTÁ AQUÍ
 
 # --- INICIALIZACIÓN Y FUNCIONES PARA GUARDAR DATOS ---
 PROJECT_ID = "diagnostico-unidigihub"
@@ -119,7 +120,6 @@ if st.session_state.current_section == 1:
                 "situacion_laboral": st.session_state.s1_laboral, "acceso_tecnologia": st.session_state.s1_tecnologia,
                 "timestamp_inicio": datetime.datetime.now(datetime.timezone.utc).isoformat()
             }
-            # Usando la nueva función de "Correo Postal"
             success, doc_id, error = save_data_rest("respuestas_diagnostico_unificado", doc_data)
             if success:
                 st.session_state.firestore_doc_id = doc_id
@@ -132,7 +132,6 @@ if st.session_state.current_section == 1:
                 st.exception(error)
 
 # --- (El resto de las secciones usarán la librería normal de Firebase para actualizar, lo cual es más sencillo) ---
-# Si esta sección pasa, las demás funcionarán.
 elif st.session_state.current_section > 1:
     st.header("🎉 ¡Éxito! 🎉")
     st.balloons()
