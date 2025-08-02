@@ -3,9 +3,8 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import json
 import time
-import datetime
 
-# --- INICIALIZACIÓN DE FIREBASE (NO TOCAR) ---
+# --- INICIALIZACIÓN DE FIREBASE ---
 def initialize_firebase():
     try:
         creds_from_secrets = st.secrets["firebase_credentials"]
@@ -18,115 +17,51 @@ def initialize_firebase():
         
         if not firebase_admin._apps:
             firebase_admin.initialize_app(cred)
-        return True, None
+        return True
     except Exception as e:
-        return False, e
+        st.error(f"Error CRÍTICO al inicializar Firebase: {e}")
+        return False
 
-IS_FIREBASE_INITIALIZED, FIREBASE_ERROR = initialize_firebase()
+IS_FIREBASE_INITIALIZED = initialize_firebase()
 db = firestore.client() if IS_FIREBASE_INITIALIZED else None
 
 # --- CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="Diagnóstico UniDigiHub", layout="centered")
+st.set_page_config(page_title="Prueba Final UniDigiHub", layout="centered")
+st.title("🔬 Prueba Final de Conexión")
+st.markdown("---")
 
-# --- NAVEGACIÓN ---
-st.sidebar.title("Navegación")
-page = st.sidebar.radio("Elige una sección:", ["Formulario de Diagnóstico", "Prueba de Conexión"])
+# --- SECCIÓN ÚNICA DE PRUEBA ---
+st.header("Sección 1: Prueba de Escritura")
+st.write("Ignora los campos. Solo presiona el botón de abajo para realizar la prueba de escritura en la base de datos.")
 
-# --- PÁGINA 1: FORMULARIO ---
-if page == "Formulario de Diagnóstico":
-    if "current_section" not in st.session_state:
-        st.session_state.current_section = 1
-    if "firestore_doc_id" not in st.session_state:
-        st.session_state.firestore_doc_id = None
+with st.form("form_s1"):
+    # Campos de relleno, no se usarán
+    st.text_input("Campo de prueba 1")
+    st.text_input("Campo de prueba 2")
+    submitted_s1 = st.form_submit_button("Realizar Prueba de Escritura")
 
-    st.title("📝 Diagnóstico UniDigiHub LATAM")
-    total_sections = 5
-    progress_text = f"Progreso: Sección {st.session_state.current_section} de {total_sections}"
-    st.progress(st.session_state.current_section / total_sections, text=progress_text)
-    st.markdown("---")
-
-    if st.session_state.current_section == 1:
-        st.header("Sección 1: Datos Demográficos")
-        with st.form("form_s1"):
-            paises = ["", "México (Mēxihco)", "Colombia", "Chile", "Brasil", "Argentina", "Costa Rica", "Ecuador", "El Salvador", "Perú"]
-            st.selectbox("1. ¿En qué país resides?", paises, key="s1_pais")
-            st.text_input("2. Departamento o Estado donde vives", key="s1_depto")
-            st.text_input("3. Municipio o comunidad", key="s1_comunidad")
-            st.slider("4. ¿Cuál es tu edad?", min_value=15, max_value=90, value=25, step=1, key="s1_edad")
-            st.selectbox("5. ¿Con qué género te identificas?", ["", "Femenino", "Masculino", "No binario", "Prefiero no decir", "Muxe (zapoteco)", "Otro"], key="s1_genero")
-            st.selectbox("6. ¿Cuál es tu nivel educativo más alto alcanzado?", ["", "Primaria incompleta", "Primaria completa", "Secundaria", "Técnico", "Universitario 🎓", "Posgrado"], key="s1_educacion")
-            st.multiselect("7. ¿Cuál es tu situación laboral actual?", ["Agricultura de subsistencia", "Empleo informal", "Estudiante", "Desempleado", "Trabajo remoto"], key="s1_laboral")
-            st.multiselect("8. ¿Qué acceso tecnológico tienes actualmente?", ["📱 Teléfono móvil (sin internet)", "📱💻 Teléfono con internet", "💻 Computadora/Tablet", "📶 Internet estable en casa", "❌ Ninguno"], key="s1_tecnologia")
-            submitted_s1 = st.form_submit_button("Guardar y Continuar")
-
-        if submitted_s1:
-            campos_obligatorios = {
-                "País": st.session_state.s1_pais, "Departamento o Estado": st.session_state.s1_depto,
-                "Municipio o comunidad": st.session_state.s1_comunidad, "Género": st.session_state.s1_genero,
-                "Nivel educativo": st.session_state.s1_educacion
-            }
-            campos_faltantes = [nombre for nombre, valor in campos_obligatorios.items() if not valor]
-            if campos_faltantes:
-                st.error(f"🚨 ¡Atención! Por favor, completa los siguientes campos para continuar: **{', '.join(campos_faltantes)}**.")
-            else:
-                try:
-                    doc_data = {"seccion1_demograficos": {"pais": st.session_state.s1_pais, "departamento": st.session_state.s1_depto, "comunidad": st.session_state.s1_comunidad, "edad": st.session_state.s1_edad, "genero": st.session_state.s1_genero, "nivel_educativo": st.session_state.s1_educacion, "situacion_laboral": st.session_state.s1_laboral, "acceso_tecnologia": st.session_state.s1_tecnologia,}, "timestamp_inicio": firestore.SERVER_TIMESTAMP}
-                    _, doc_ref = db.collection("respuestas_diagnostico_unificado").add(doc_data)
-                    st.session_state.firestore_doc_id = doc_ref.id
-                    st.session_state.current_section = 2
-                    st.success("✅ ¡Sección 1 guardada! Avanzando...")
-                    time.sleep(2)
-                    st.rerun()
-                except Exception as e:
-                    st.error("Houston, tenemos un problema al guardar los datos.")
-                    st.exception(e)
-    # ... (El resto de las secciones del formulario van aquí, no se modifican) ...
-
-# --- PÁGINA 2: PRUEBA DE CONEXIÓN ---
-elif page == "Prueba de Conexión":
-    st.header("Herramienta de Diagnóstico de Conexión 👨‍🔧")
-    st.write("Esta herramienta verificará cada paso de la conexión a Firebase para encontrar el problema.")
-
-    if st.button("Realizar Prueba de Conexión a Firebase"):
-        with st.spinner("Realizando pruebas..."):
-            # PRUEBA 1: Chequear si los secrets existen
-            st.subheader("Prueba 1: Lectura de 'Secrets'")
-            try:
-                creds_from_secrets = st.secrets["firebase_credentials"]
-                st.success("✅ ÉXITO: Las credenciales se leyeron correctamente desde los 'Secrets' de Streamlit.")
-            except Exception as e:
-                st.error("❌ FALLO: No se pudieron leer las credenciales desde los 'Secrets'.")
-                st.error("SOLUCIÓN: Asegúrate de haber copiado y pegado correctamente las credenciales en la sección 'Settings -> Secrets' de tu app en Streamlit Cloud.")
-                st.stop()
-
-            # PRUEBA 2: Chequear inicialización de Firebase
-            st.subheader("Prueba 2: Inicialización de la App de Firebase")
-            if IS_FIREBASE_INITIALIZED:
-                st.success("✅ ÉXITO: La aplicación de Firebase se inicializó correctamente con las credenciales.")
-            else:
-                st.error("❌ FALLO: La aplicación de Firebase no se pudo inicializar.")
-                st.error(f"Detalle del error: {FIREBASE_ERROR}")
-                st.stop()
+if submitted_s1:
+    st.info("Iniciando la prueba de escritura más simple...")
+    if not IS_FIREBASE_INITIALIZED:
+        st.error("La prueba no puede continuar porque la inicialización de Firebase falló. Revisa el error de arriba.")
+    else:
+        try:
+            st.write("Intentando enviar 'hola' a la base de datos...")
             
-            # PRUEBA 3: Escritura en Firestore
-            st.subheader("Prueba 3: Escritura en la Base de Datos")
-            try:
-                test_collection = db.collection("test_diagnostico")
-                test_doc_name = f"test_{int(time.time())}"
-                test_collection.document(test_doc_name).set({
-                    "mensaje": "Prueba de escritura exitosa",
-                    "timestamp": firestore.SERVER_TIMESTAMP
-                })
-                st.success("✅ ÉXITO: Se escribió un documento de prueba en la base de datos.")
-                st.info(f"Se creó un documento llamado '{test_doc_name}' en la colección 'test_diagnostico'.")
-            except Exception as e:
-                st.error("❌ FALLO: Se produjo un error al intentar escribir en la base de datos de Firestore.")
-                st.error("Este es el error más común. Posibles soluciones:")
-                st.error("1. **API Deshabilitada:** Asegúrate de que la API 'Cloud Firestore API' esté HABILITADA en tu proyecto de Google Cloud.")
-                st.error("2. **Permisos:** El service account podría no tener permisos de escritura. Ve a 'IAM y administración' en Google Cloud y asegúrate de que tenga el rol de 'Editor' o 'Usuario de Cloud Datastore'.")
-                st.exception(e)
-                st.stop()
+            # La "llamada telefónica": un intento de escritura muy simple.
+            db.collection("prueba_final_escritura").add({
+                "mensaje": "La escritura funcionó correctamente",
+                "timestamp": firestore.SERVER_TIMESTAMP
+            })
             
+            # Si el código llega aquí, todo funcionó.
+            st.success("✅ ¡ÉXITO! La 'llamada telefónica' a la base de datos se completó.")
+            st.success("La conexión y los permisos son CORRECTOS.")
             st.balloons()
-            st.header("🎉 ¡Todas las pruebas pasaron! La conexión funciona.")
-            st.info("Si todas las pruebas fueron exitosas, el formulario debería funcionar. Inténtalo de nuevo en la sección 'Formulario de Diagnóstico'.")
+            st.info("Si ves este mensaje, el problema original podría estar relacionado con los datos del formulario. Pero ahora sabemos que la conexión funciona.")
+
+        except Exception as e:
+            # Si el código llega aquí, la escritura falló.
+            st.error("❌ FALLÓ. La 'llamada telefónica' a la base de datos no se pudo completar.")
+            st.error("Este es el error definitivo que nos dice el porqué:")
+            st.exception(e)
