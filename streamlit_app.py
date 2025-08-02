@@ -6,7 +6,7 @@ import time
 import requests
 from google.oauth2 import service_account
 from google.auth.transport.requests import Request
-import datetime # <--- LA CORRECCIÓN ESTÁ AQUÍ
+import datetime
 
 # --- INICIALIZACIÓN Y FUNCIONES PARA GUARDAR DATOS ---
 PROJECT_ID = "diagnostico-unidigihub"
@@ -32,7 +32,12 @@ def get_credentials():
 def save_data_rest(collection_name, data):
     try:
         creds_info = get_credentials()
-        creds = service_account.Credentials.from_service_account_info(creds_info)
+        
+        # --- LA CORRECCIÓN ESTÁ AQUÍ ---
+        # Especificamos para qué "bodega" (servicio) queremos el permiso.
+        scopes = ['https://www.googleapis.com/auth/datastore']
+        creds = service_account.Credentials.from_service_account_info(creds_info, scopes=scopes)
+        # --- FIN DE LA CORRECCIÓN ---
         
         if not creds.token:
             creds.refresh(Request())
@@ -54,13 +59,14 @@ def save_data_rest(collection_name, data):
             elif isinstance(value, int) or isinstance(value, float):
                 firestore_data["fields"][key] = {"integerValue": str(value)}
             elif isinstance(value, list):
-                 firestore_data["fields"][key] = {"arrayValue": {"values": [{"stringValue": str(v)} for v in value]}}
-            # Se pueden añadir más tipos si es necesario
+                if not value: # Si la lista está vacía
+                    firestore_data["fields"][key] = {"arrayValue": {}}
+                else:
+                    firestore_data["fields"][key] = {"arrayValue": {"values": [{"stringValue": str(v)} for v in value]}}
         
         response = requests.post(url, headers=headers, data=json.dumps(firestore_data))
-        response.raise_for_status() # Lanza un error si la respuesta no es 2xx
+        response.raise_for_status() 
         
-        # Extraer el ID del nuevo documento de la respuesta
         response_json = response.json()
         doc_name = response_json.get("name", "").split("/")[-1]
         return True, doc_name, None
@@ -124,17 +130,17 @@ if st.session_state.current_section == 1:
             if success:
                 st.session_state.firestore_doc_id = doc_id
                 st.session_state.current_section = 2
-                st.success("✅ ¡Sección 1 guardada con el nuevo método! Avanzando...")
+                st.success("✅ ¡Sección 1 guardada! Avanzando...")
                 time.sleep(2)
                 st.rerun()
             else:
                 st.error("Houston, tenemos un problema final al guardar los datos.")
                 st.exception(error)
 
-# --- (El resto de las secciones usarán la librería normal de Firebase para actualizar, lo cual es más sencillo) ---
+# --- Esta sección se reemplazará cuando construyamos el resto del formulario ---
 elif st.session_state.current_section > 1:
     st.header("🎉 ¡Éxito! 🎉")
     st.balloons()
     st.success("La primera sección se guardó correctamente. El problema principal está resuelto.")
     st.info(f"Tu ID de registro es: {st.session_state.firestore_doc_id}")
-    st.markdown("Ahora podemos continuar construyendo el resto de las secciones.")
+    st.markdown("Ahora podemos continuar construyendo el resto de las secciones del formulario.")
